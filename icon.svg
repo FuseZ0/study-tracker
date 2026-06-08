@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="40" fill="#0f1117"/>
+  <rect x="32" y="40" width="128" height="16" rx="8" fill="#4f8ef7"/>
+  <rect x="32" y="72" width="96" height="12" rx="6" fill="#3ecf8e"/>
+  <rect x="32" y="100" width="112" height="12" rx="6" fill="#3ecf8e" opacity="0.6"/>
+  <rect x="32" y="128" width="80" height="12" rx="6" fill="#7a8099" opacity="0.4"/>
+  <circle cx="148" cy="148" r="28" fill="#4f8ef7"/>
+  <text x="148" y="155" text-anchor="middle" font-size="24" fill="white">💬</text>
+</svg>

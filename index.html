@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ตารางทบทวน</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1117; --surface: #181c27; --surface2: #1f2436;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+  --text: #e8eaf0; --muted: #7a8099;
+  --accent: #4f8ef7; --accent-dim: rgba(79,142,247,0.15);
+  --green: #3ecf8e; --green-dim: rgba(62,207,142,0.12);
+  --amber: #f5a623;
+  --font: 'Noto Sans Thai', sans-serif; --mono: 'JetBrains Mono', monospace;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: var(--font); height: 100vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* TOPBAR */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px; border-bottom: 1px solid var(--border);
+  background: var(--surface); flex-shrink: 0;
+}
+.topbar-title { font-size: 13px; font-weight: 500; }
+.topbar-title span { color: var(--accent); }
+.week-dots { display: flex; align-items: center; gap: 5px; }
+.wdot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); transition: background .3s; }
+.wdot.done { background: var(--green); }
+.wdot.active { background: var(--accent); box-shadow: 0 0 5px var(--accent); }
+.wdot.classday { background: rgba(245,166,35,.4); }
+.wdot.classday.done { background: var(--green); }
+.wsep { width: 1px; height: 8px; background: var(--border2); margin: 0 2px; }
+.week-label { font-size: 11px; font-family: var(--mono); color: var(--muted); margin-right: 6px; }
+
+/* MAIN */
+.main { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+
+/* ── LEFT: vertical scroll slider ── */
+.left-panel {
+  width: 270px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+  position: relative;
+  min-height: 0;
+}
+
+/* scroll container: snap per child */
+.days-scroll {
+  flex: 1;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.days-scroll::-webkit-scrollbar { display: none; }
+
+/* each day card fills the panel height exactly → snap */
+.day-card {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  height: 100%;          /* filled by JS: panel height */
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border);
+  transition: background .2s;
+}
+.day-card.classday { background: rgba(245,166,35,.03); }
+
+/* day header inside card */
+.day-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.day-hdr-name { font-size: 13px; font-weight: 500; }
+.day-hdr-right { display: flex; align-items: center; gap: 8px; }
+.day-count { font-size: 10px; font-family: var(--mono); color: var(--muted); }
+.prog-bar { width: 48px; height: 3px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .3s; }
+
+/* sessions list inside card — scrollable if overflow */
+.sessions-list {
+  flex: 1; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px;
+}
+.sessions-list::-webkit-scrollbar { width: 3px; }
+.sessions-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.session-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 8px; border-radius: 7px;
+  cursor: pointer; border: 1px solid transparent;
+  transition: background .12s, border-color .12s;
+}
+.session-item:hover { background: var(--surface2); }
+.session-item.checked { background: var(--green-dim); border-color: rgba(62,207,142,.15); }
+.scheck {
+  width: 15px; height: 15px; border-radius: 4px; flex-shrink: 0;
+  border: 1.5px solid var(--border2); margin-top: 1px;
+  display: flex; align-items: center; justify-content: center; transition: all .12s;
+}
+.session-item.checked .scheck { background: var(--green); border-color: var(--green); }
+.session-item.checked .scheck::after {
+  content:''; width:7px; height:4px;
+  border-left:2px solid #fff; border-bottom:2px solid #fff;
+  transform:rotate(-45deg) translateY(-1px); display:block;
+}
+.slabel { font-size: 12px; color: var(--muted); line-height: 1.4; transition: color .12s; }
+.session-item.checked .slabel { color: var(--green); text-decoration: line-through; text-decoration-color: rgba(62,207,142,.4); }
+.ssub { font-size: 10px; color: var(--muted); opacity: .55; margin-top: 1px; }
+.stimetag {
+  font-size: 9px; font-family: var(--mono);
+  padding: 1px 4px; border-radius: 3px;
+  background: rgba(245,166,35,.15); color: var(--amber);
+  margin-left: 4px; vertical-align: middle;
+}
+.topic-input {
+  width: 100%; margin-top: 4px;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 5px;
+  padding: 3px 7px; font-size: 11px; color: var(--text);
+  font-family: var(--font); outline: none;
+}
+.topic-input:focus { border-color: var(--accent); }
+
+/* scroll indicator dots on the right edge */
+.scroll-indicator {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 5px; z-index: 10;
+}
+.si-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--border2); cursor: pointer;
+  transition: all .2s; border: none; padding: 0;
+}
+.si-dot.active { background: var(--accent); transform: scale(1.4); }
+.si-dot.done { background: var(--green); }
+.si-dot.classday { background: rgba(245,166,35,.4); }
+.si-dot.classday.active { background: var(--amber); }
+
+/* ── CHAT ── */
+.chat-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.chat-ctx {
+  padding: 7px 14px; border-bottom: 1px solid var(--border);
+  background: var(--surface); display: flex; align-items: center; gap: 7px; flex-shrink: 0; flex-wrap: wrap;
+}
+.ctx-label { font-size: 11px; color: var(--muted); }
+.ctx-tag { font-size: 10px; font-family: var(--mono); padding: 2px 7px; border-radius: 20px; }
+.ctx-tag.math { background: rgba(79,142,247,.15); color: #4f8ef7; }
+.ctx-tag.elec { background: rgba(167,139,250,.15); color: #a78bfa; }
+.ctx-tag.dig  { background: rgba(62,207,142,.15);  color: #3ecf8e; }
+.ctx-tag.phys { background: rgba(245,166,35,.15);  color: #f5a623; }
+.ctx-tag.mech { background: rgba(255,107,107,.15); color: #ff6b6b; }
+
+.messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 11px; scroll-behavior: smooth; }
+.messages::-webkit-scrollbar { width: 3px; }
+.messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.msg { display: flex; gap: 8px; max-width: 88%; animation: fadeUp .2s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.mavatar {
+  width: 25px; height: 25px; border-radius: 7px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600;
+}
+.msg.ai .mavatar { background: var(--accent-dim); color: var(--accent); }
+.msg.user .mavatar { background: var(--green-dim); color: var(--green); }
+.mbubble { padding: 8px 12px; border-radius: 10px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; }
+.msg.ai .mbubble { background: var(--surface2); border: 1px solid var(--border); border-top-left-radius: 3px; }
+.msg.user .mbubble { background: var(--accent-dim); border: 1px solid rgba(79,142,247,.2); border-top-right-radius: 3px; }
+.typing-dot { display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--muted); margin:0 2px; animation:bounce 1.2s infinite; }
+.typing-dot:nth-child(2){animation-delay:.2s} .typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
+.empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--muted); font-size:12px; text-align:center; }
+
+.quick-prompts { display:flex; gap:6px; padding:8px 12px; overflow-x:auto; border-top:1px solid var(--border); flex-shrink:0; scrollbar-width:none; }
+.quick-prompts::-webkit-scrollbar{display:none}
+.qbtn { flex-shrink:0; padding:5px 10px; border-radius:20px; border:1px solid var(--border2); background:var(--surface); color:var(--muted); font-size:11px; font-family:var(--font); cursor:pointer; white-space:nowrap; transition:all .15s; }
+.qbtn:hover { border-color:var(--accent); color:var(--accent); }
+
+.input-area { padding:10px 14px; border-top:1px solid var(--border); background:var(--surface); display:flex; gap:8px; align-items:flex-end; flex-shrink:0; }
+.input-wrap { flex:1; background:var(--surface2); border:1px solid var(--border2); border-radius:10px; padding:8px 11px; display:flex; align-items:flex-end; gap:8px; transition:border-color .2s; }
+.input-wrap:focus-within { border-color:var(--accent); }
+#user-input { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:var(--font); font-size:13px; resize:none; max-height:100px; line-height:1.5; }
+#user-input::placeholder { color:var(--muted); }
+.send-btn { width:28px; height:28px; border-radius:7px; background:var(--accent); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity .2s,transform .1s; }
+.send-btn:hover{opacity:.85} .send-btn:active{transform:scale(.92)} .send-btn:disabled{opacity:.3;cursor:default}
+.send-btn svg{width:12px;height:12px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── API KEY MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-box {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 14px; padding: 28px 28px 24px; width: 360px; max-width: 90vw;
+}
+.modal-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+.modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; line-height: 1.6; }
+.modal-sub a { color: var(--accent); text-decoration: none; }
+.modal-input {
+  width: 100%; background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 9px 12px; font-size: 13px; color: var(--text);
+  font-family: var(--mono); outline: none; margin-bottom: 12px;
+  transition: border-color .2s;
+}
+.modal-input:focus { border-color: var(--accent); }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-btn {
+  padding: 7px 16px; border-radius: 7px; font-size: 13px;
+  font-family: var(--font); cursor: pointer; border: none; transition: opacity .15s;
+}
+.modal-btn.primary { background: var(--accent); color: #fff; }
+.modal-btn.primary:hover { opacity: .85; }
+.modal-btn.ghost { background: transparent; border: 1px solid var(--border2); color: var(--muted); }
+.modal-btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+/* key indicator in topbar */
+.key-status {
+  font-size: 10px; font-family: var(--mono);
+  padding: 3px 8px; border-radius: 20px; cursor: pointer;
+  border: 1px solid var(--border2); color: var(--muted);
+  background: transparent; transition: all .15s; margin-left: 8px;
+}
+.key-status.set { border-color: rgba(62,207,142,.4); color: var(--green); }
+.key-status:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f1117">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Study Tracker">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">📚 study tracker — <span>ทั้งสัปดาห์</span></div>
+  <div style="display:flex;align-items:center;gap:6px">
+    <div class="week-dots">
+      <span class="week-label" id="week-label">0/7</span>
+      <div class="wdot" id="dot-0"></div>
+      <div class="wdot" id="dot-1"></div>
+      <div class="wdot" id="dot-2"></div>
+      <div class="wdot" id="dot-3"></div>
+      <div class="wdot" id="dot-4"></div>
+      <div class="wsep"></div>
+      <div class="wdot classday" id="dot-5"></div>
+      <div class="wdot classday" id="dot-6"></div>
+    </div>
+    <button class="key-status" id="key-status" onclick="openKeyModal()">🔑 ใส่ API key</button>
+  </div>
+</div>
+
+<!-- API KEY MODAL -->
+<div class="modal-overlay" id="key-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title">🔑 OpenRouter API Key</div>
+    <div class="modal-sub">
+      ใส่ key เพื่อให้ chat ทำงานได้ (ฟรี!)<br>
+      key จะบันทึกใน localStorage บนเครื่องของคุณเท่านั้น<br>
+      รับ key ได้ที่ <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>
+    </div>
+    <input class="modal-input" id="key-input" type="password" placeholder="sk-or-..." spellcheck="false">
+    <div class="modal-actions">
+      <button class="modal-btn ghost" onclick="closeKeyModal()">ยกเลิก</button>
+      <button class="modal-btn ghost" onclick="clearKey()" id="clear-btn" style="display:none">ลบ key</button>
+      <button class="modal-btn primary" onclick="saveKey()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- LEFT: vertical snap scroll -->
+  <div class="left-panel" id="left-panel">
+    <div class="days-scroll" id="days-scroll"></div>
+
+    <!-- dot indicators on right edge -->
+    <div class="scroll-indicator" id="scroll-indicator"></div>
+  </div>
+
+  <!-- RIGHT: chat -->
+  <div class="chat-panel">
+    <div class="chat-ctx">
+      <span class="ctx-label">บริบท:</span>
+      <span class="ctx-tag math">MATH0101</span>
+      <span class="ctx-tag elec">EECC0232</span>
+      <span class="ctx-tag dig">MIIC1120</span>
+      <span class="ctx-tag phys">PHYS0110</span>
+      <span class="ctx-tag mech">MECH0110</span>
+    </div>
+    <div class="messages" id="messages">
+      <div class="empty-state" id="empty-state">
+        <div style="font-size:26px;opacity:.2">💬</div>
+        <div>ถามเรื่องที่เรียนได้เลย<br><span style="font-size:10px;opacity:.6">Claude รู้ตารางและวิชาของคุณอยู่แล้ว</span></div>
+      </div>
+    </div>
+    <div class="quick-prompts">
+      <button class="qbtn" onclick="quickSend('อธิบาย derivative ให้เข้าใจง่ายๆ')">📐 derivative</button>
+      <button class="qbtn" onclick="quickSend('ทำโจทย์ MATH ไม่ออก ช่วยวิธีคิดหน่อย')">🤔 ติดโจทย์</button>
+      <button class="qbtn" onclick="quickSend('สรุปเนื้อหาที่เรียนวันนี้ให้หน่อย')">📝 สรุปวันนี้</button>
+      <button class="qbtn" onclick="quickSend('วางแผนว่าพรุ่งนี้ควรเรียนเรื่องอะไรต่อ')">📅 พรุ่งนี้</button>
+      <button class="qbtn" onclick="quickSend('ทบทวน EECC วงจรไฟฟ้าเบื้องต้นหน่อย')">⚡ EECC</button>
+    </div>
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea id="user-input" rows="1" placeholder="ถามเรื่องที่เรียน หรือขอสรุป..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      </div>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DAYS = [
+  { name:'วันจันทร์', short:'จันทร์', isClassDay:false, sessions:[
+    { id:'mon-1', label:'MATH0101 — ทบทวนโจทย์เสาร์', sub:'derivative / limit', tag:'math' },
+    { id:'mon-2', label:'EECC0232 — ทบทวน lecture เสาร์', sub:'สรุป notes + แบบฝึกหัดวงจร', tag:'elec' },
+    { id:'mon-3', label:'MATH0101 — สรุปสูตร + flashcard', sub:'เขียนสูตรที่จำไม่ได้', tag:'math' },
+  ]},
+  { name:'วันอังคาร', short:'อังคาร', isClassDay:false, sessions:[
+    { id:'tue-1', label:'MIIC1120 — logic gate + truth table', sub:'combinational circuit', tag:'dig' },
+    { id:'tue-2', label:'MECH0110 — free body diagram', sub:'statics / equilibrium', tag:'mech' },
+    { id:'tue-3', label:'MATH0101 — โจทย์เพิ่มเติม', sub:'โจทย์ที่ยังทำผิดซ้ำ / past exam', tag:'math' },
+  ]},
+  { name:'วันพุธ', short:'พุธ', isClassDay:false, sessions:[
+    { id:'wed-1', label:'PHYS0110 — problem set mechanics', sub:"Newton's laws / energy / momentum", tag:'phys' },
+    { id:'wed-2', label:'ENCC0007 — เตรียม lab report', sub:'อ่านขั้นตอนทดลอง / pre-lab', tag:'phys' },
+    { id:'wed-3', label:'MATH0101 — Integration เบื้องต้น', sub:'อ่านล่วงหน้าก่อนเสาร์', tag:'math' },
+  ]},
+  { name:'วันพฤหัสบดี', short:'พฤหัส', isClassDay:false, sessions:[
+    { id:'thu-1', label:'EECC0232 — เตรียมเนื้อหาคาบอาทิตย์', sub:'MIIX304 + MIIX303 สองคาบต่อเนื่อง', tag:'elec' },
+    { id:'thu-2', label:'PHYS0190 — ทบทวน lab ที่ผ่านมา', sub:'เตรียมคาบอาทิตย์ค่ำ', tag:'phys' },
+    { id:'thu-3', label:'MATH0101 — โจทย์ชุดยาก', sub:'past exam / โจทย์ซับซ้อน', tag:'math' },
+  ]},
+  { name:'วันศุกร์', short:'ศุกร์', isClassDay:false, sessions:[
+    { id:'fri-1', label:'MATH0101 — weekly review', sub:'สรุปจุดที่ยังสะดุดทั้งสัปดาห์', tag:'math' },
+    { id:'fri-2', label:'MIIC1120 — สรุป mind map ดิจิทัล', sub:'flashcard / สรุป chapter', tag:'dig' },
+    { id:'fri-3', label:'เตรียมของสำหรับเสาร์', sub:'assignment / lab kit / handout', tag:'mech' },
+  ]},
+  { name:'วันเสาร์ 🎓', short:'เสาร์', isClassDay:true, sessions:[
+    { id:'sat-1', label:'EECC0232 — คาบ 1', sub:'D502 • ไฟฟ้า Sec C2', tag:'elec', time:'8:00' },
+    { id:'sat-2', label:'MATH0101 — คาบ 2', sub:'D504 • แคลคูลัส Sec F2', tag:'math', time:'10:30' },
+    { id:'sat-3', label:'PHYS0110 — คาบ 3', sub:'F504 • ฟิสิกส์ 1 Sec D2', tag:'phys', time:'13:30' },
+    { id:'sat-4', label:'MIIC1120 — คาบ 4', sub:'MII207A • ดิจิทัล Sec B', tag:'dig', time:'16:00' },
+    { id:'sat-5', label:'MECH0110 — คาบ 5', sub:'F502 • กลศาสตร์ Sec B', tag:'mech', time:'18:30' },
+  ]},
+  { name:'วันอาทิตย์ 🎓', short:'อาทิตย์', isClassDay:true, sessions:[
+    { id:'sun-1', label:'MATH0101 — คาบ 1', sub:'D602 • แคลคูลัส Sec F2', tag:'math', time:'8:00' },
+    { id:'sun-2', label:'MIIC1120 — คาบ 3', sub:'MIIX302 • ดิจิทัล Sec B', tag:'dig', time:'13:30' },
+    { id:'sun-3', label:'EECC0232 — คาบ 4 (กลุ่ม 1)', sub:'MIIX304 • ไฟฟ้า Sec C2', tag:'elec', time:'16:00' },
+    { id:'sun-4', label:'EECC0232 — คาบ 4 (กลุ่ม 2)', sub:'MIIX303 • ไฟฟ้า Sec C2', tag:'elec', time:'16:00' },
+    { id:'sun-5', label:'PHYS0190 — คาบ 5', sub:'K202 • ปฏิบัติฟิสิกส์ Sec D2', tag:'phys', time:'18:30' },
+  ]},
+];
+
+let state = JSON.parse(localStorage.getItem('study_s4') || '{}');
+let messages = JSON.parse(localStorage.getItem('study_m4') || '[]');
+const dayMap = {1:0,2:1,3:2,4:3,5:4,6:5,0:6};
+let activeDay = dayMap[new Date().getDay()] ?? 0;
+
+const save = () => localStorage.setItem('study_s4', JSON.stringify(state));
+const saveMsgs = () => localStorage.setItem('study_m4', JSON.stringify(messages.slice(-30)));
+const doneCnt = i => DAYS[i].sessions.filter(s => state[s.id]).length;
+const isDone = i => doneCnt(i) === DAYS[i].sessions.length;
+
+/* ── API KEY ── */
+function getKey() { return localStorage.getItem('study_apikey') || ''; }
+function updateKeyStatus() {
+  const btn = document.getElementById('key-status');
+  const key = getKey();
+  if (key) {
+    btn.textContent = '🔑 key: …' + key.slice(-4);
+    btn.className = 'key-status set';
+  } else {
+    btn.textContent = '🔑 ใส่ API key';
+    btn.className = 'key-status';
+  }
+}
+function openKeyModal() {
+  const key = getKey();
+  document.getElementById('key-input').value = key;
+  document.getElementById('clear-btn').style.display = key ? 'block' : 'none';
+  document.getElementById('key-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('key-input').focus(), 50);
+}
+function closeKeyModal() { document.getElementById('key-modal').style.display = 'none'; }
+function saveKey() {
+  const val = document.getElementById('key-input').value.trim();
+  if (!val) return;
+  localStorage.setItem('study_apikey', val);
+  updateKeyStatus();
+  closeKeyModal();
+}
+function clearKey() {
+  localStorage.removeItem('study_apikey');
+  document.getElementById('key-input').value = '';
+  updateKeyStatus();
+  closeKeyModal();
+}
+// close on backdrop click
+document.getElementById('key-modal').addEventListener('click', e => {
+  if (e.target.id === 'key-modal') closeKeyModal();
+});
+// enter key in input
+document.getElementById('key-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveKey();
+});
+
+/* ── BUILD CARDS ── */
+function buildCards() {
+  const scroll = document.getElementById('days-scroll');
+  const cardH = document.getElementById('left-panel').clientHeight;
+  scroll.innerHTML = '';
+
+  DAYS.forEach((day, idx) => {
+    const done = doneCnt(idx);
+    const total = day.sessions.length;
+    const pct = Math.round(done / total * 100);
+
+    const card = document.createElement('div');
+    card.className = 'day-card' + (day.isClassDay ? ' classday' : '');
+    card.id = 'card-' + idx;
+    card.style.height = cardH + 'px';
+
+    // header
+    const hdr = document.createElement('div');
+    hdr.className = 'day-hdr';
+    hdr.innerHTML = `<span class="day-hdr-name">${day.name}</span>
+      <div class="day-hdr-right">
+        <span class="day-count">${done}/${total}</span>
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    card.appendChild(hdr);
+
+    // sessions
+    const list = document.createElement('div');
+    list.className = 'sessions-list';
+    day.sessions.forEach(s => {
+      const checked = !!state[s.id];
+      const item = document.createElement('div');
+      item.className = 'session-item' + (checked ? ' checked' : '');
+      item.onclick = () => toggleSession(s.id, idx);
+      const topicVal = (state[s.id + '_topic'] || '').replace(/"/g, '&quot;');
+      const timeTag = s.time ? `<span class="stimetag">${s.time}</span>` : '';
+      const topicHtml = day.isClassDay
+        ? `<input class="topic-input" type="text" placeholder="เรียนถึงเรื่อง..." value="${topicVal}"
+            style="display:${checked ? 'block' : 'none'}"
+            onclick="event.stopPropagation()"
+            oninput="saveTopic('${s.id}', this.value)">`
+        : '';
+      item.innerHTML = `<div class="scheck"></div>
+        <div style="flex:1;min-width:0">
+          <div class="slabel">${s.label}${timeTag}</div>
+          <div class="ssub">${s.sub}</div>${topicHtml}
+        </div>`;
+      list.appendChild(item);
+    });
+    card.appendChild(list);
+    scroll.appendChild(card);
+  });
+
+  buildIndicator();
+}
+
+/* ── INDICATOR DOTS ── */
+function buildIndicator() {
+  const el = document.getElementById('scroll-indicator');
+  el.innerHTML = '';
+  DAYS.forEach((day, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'si-dot' + (day.isClassDay ? ' classday' : '');
+    btn.title = day.short;
+    btn.onclick = () => scrollToDay(idx);
+    el.appendChild(btn);
+  });
+  updateIndicator();
+}
+
+function updateIndicator() {
+  const dots = document.querySelectorAll('.si-dot');
+  DAYS.forEach((_, idx) => {
+    const dot = dots[idx];
+    if (!dot) return;
+    let cls = 'si-dot' + (DAYS[idx].isClassDay ? ' classday' : '');
+    if (isDone(idx)) cls += ' done';
+    if (idx === activeDay) cls += ' active';
+    dot.className = cls;
+  });
+}
+
+/* ── SCROLL TO DAY ── */
+function scrollToDay(idx, smooth = true) {
+  const card = document.getElementById('card-' + idx);
+  if (!card) return;
+  card.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant', block: 'start' });
+}
+
+/* ── DETECT ACTIVE DAY ON SCROLL ── */
+function onScroll() {
+  const scroll = document.getElementById('days-scroll');
+  const scrollTop = scroll.scrollTop;
+  const cardH = document.getElementById('left-panel').clientHeight;
+  const newDay = Math.round(scrollTop / cardH);
+  if (newDay !== activeDay && newDay >= 0 && newDay < DAYS.length) {
+    activeDay = newDay;
+    updateIndicator();
+    updateDots();
+  }
+}
+
+/* ── TOGGLE SESSION ── */
+function toggleSession(id, dayIdx) {
+  state[id] = !state[id];
+  save();
+  // rebuild just the card
+  const card = document.getElementById('card-' + dayIdx);
+  const cardH = card.style.height;
+  const day = DAYS[dayIdx];
+  const done = doneCnt(dayIdx);
+  const total = day.sessions.length;
+  const pct = Math.round(done / total * 100);
+  // update header counts
+  card.querySelector('.day-count').textContent = `${done}/${total}`;
+  card.querySelector('.prog-fill').style.width = pct + '%';
+  // update session item
+  const items = card.querySelectorAll('.session-item');
+  day.sessions.forEach((s, i) => {
+    const checked = !!state[s.id];
+    items[i].className = 'session-item' + (checked ? ' checked' : '');
+    const topicInput = items[i].querySelector('.topic-input');
+    if (topicInput) topicInput.style.display = checked ? 'block' : 'none';
+  });
+  updateIndicator();
+  updateDots();
+}
+
+function saveTopic(id, val) { state[id + '_topic'] = val; save(); }
+
+/* ── DOTS (topbar) ── */
+function updateDots() {
+  let cnt = 0;
+  DAYS.forEach((day, idx) => {
+    const dot = document.getElementById('dot-' + idx);
+    if (!dot) return;
+    let cls = 'wdot' + (day.isClassDay ? ' classday' : '');
+    if (isDone(idx)) { cls += ' done'; cnt++; }
+    else if (idx === activeDay) cls += ' active';
+    dot.className = cls;
+  });
+  document.getElementById('week-label').textContent = cnt + '/7';
+}
+
+/* ── SYSTEM PROMPT ── */
+function getSystemPrompt() {
+  const all = [];
+  DAYS.forEach(day => day.sessions.forEach(s => {
+    if (state[s.id]) {
+      const t = state[s.id + '_topic'] ? ` (เรียนถึง: ${state[s.id + '_topic']})` : '';
+      all.push(`${day.short}: ${s.label}${t}`);
+    }
+  }));
+  const today = DAYS[activeDay];
+  const todayDone = today.sessions.filter(s => state[s.id]).map(s => {
+    const t = state[s.id + '_topic'] ? ` — ${state[s.id + '_topic']}` : '';
+    return s.label + t;
+  });
+  const todayLeft = today.sessions.filter(s => !state[s.id]).map(s => s.label);
+  return `คุณเป็นผู้ช่วยติวหนังสือสำหรับนักศึกษาวิศวกรรม
+วิชา: MATH0101 แคลคูลัส (กังวลมากที่สุด), EECC0232 ไฟฟ้า, MIIC1120 ดิจิทัล, PHYS0110 ฟิสิกส์ 1, PHYS0190 ปฏิบัติฟิสิกส์, MECH0110 กลศาสตร์, ENCC0007 ปฏิบัติการ (สอบ AFTERFINAL)
+วันนี้: ${today.name}${today.isClassDay ? ' (วันเรียนจริง)' : ' (วันทบทวน)'}
+เสร็จแล้ววันนี้: ${todayDone.join('; ') || 'ยังไม่มี'}
+ค้างอยู่: ${todayLeft.join(', ') || 'ครบแล้ว!'}
+สัปดาห์นี้: ${all.join('; ') || 'ยังไม่มี'}
+ตอบภาษาไทย กระชับ เป็นกันเอง ถ้าสอนคณิต/ฟิสิกส์ให้ใช้ตัวอย่างและขั้นตอนชัดเจน`;
+}
+
+/* ── CHAT ── */
+function renderMessages() {
+  const box = document.getElementById('messages');
+  box.querySelectorAll('.msg').forEach(e => e.remove());
+  const empty = document.getElementById('empty-state');
+  if (!messages.length) { empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+  messages.forEach(m => {
+    const d = document.createElement('div');
+    d.className = 'msg ' + (m.role === 'user' ? 'user' : 'ai');
+    d.innerHTML = `<div class="mavatar">${m.role === 'user' ? 'คุณ' : 'AI'}</div>
+      <div class="mbubble">${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+    box.appendChild(d);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendMessage(text) {
+  const inp = document.getElementById('user-input');
+  const msg = text || inp.value.trim();
+  if (!msg) return;
+
+  const apiKey = getKey();
+  if (!apiKey) {
+    openKeyModal();
+    return;
+  }
+
+  if (!text) { inp.value = ''; inp.style.height = 'auto'; }
+  messages.push({ role: 'user', content: msg });
+  renderMessages();
+  const typing = document.createElement('div');
+  typing.className = 'msg ai';
+  typing.innerHTML = `<div class="mavatar">AI</div><div class="mbubble"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
+  document.getElementById('messages').appendChild(typing);
+  document.getElementById('messages').scrollTop = 99999;
+  document.getElementById('send-btn').disabled = true;
+  try {
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://study-tracker.local',
+        'X-Title': 'Study Tracker'
+      },
+      body: JSON.stringify({
+        model: 'openrouter/auto',
+        messages: [
+          { role: 'system', content: getSystemPrompt() },
+          ...messages.slice(-12)
+        ],
+        max_tokens: 1000
+      })
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    const reply = data.choices?.[0]?.message?.content || 'เกิดข้อผิดพลาด';
+    typing.remove();
+    messages.push({ role: 'assistant', content: reply });
+    saveMsgs(); renderMessages();
+  } catch (e) {
+    typing.remove();
+    const errMsg = e.message?.includes('invalid') || e.message?.includes('auth')
+      ? '❌ API key ไม่ถูกต้อง กรุณากดปุ่ม 🔑 เพื่อใส่ key ใหม่'
+      : '❌ เชื่อมต่อไม่ได้: ' + (e.message || 'unknown error');
+    messages.push({ role: 'assistant', content: errMsg });
+    renderMessages();
+  }
+  document.getElementById('send-btn').disabled = false;
+}
+const quickSend = t => sendMessage(t);
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
+
+/* ── INIT ── */
+buildCards();
+updateDots();
+renderMessages();
+
+// after render, scroll to today without animation
+requestAnimationFrame(() => {
+  scrollToDay(activeDay, false);
+  // attach scroll listener
+  const scrollEl = document.getElementById('days-scroll');
+  scrollEl.addEventListener('scroll', onScroll, { passive: true });
+});
+
+// rebuild on resize
+window.addEventListener('resize', () => {
+  const scrollEl = document.getElementById('days-scroll');
+  scrollEl.removeEventListener('scroll', onScroll);
+  buildCards();
+  requestAnimationFrame(() => {
+    scrollToDay(activeDay, false);
+    scrollEl.addEventListener('scroll', onScroll, { passive: true });
+  });
+});
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(e => console.log('SW error:', e));
+  });
+}
+</script>
+
+</body>
+</html>
