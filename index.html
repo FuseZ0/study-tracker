@@ -151,6 +151,24 @@ body{
   .sync-dot{top:10px;right:10px;}
 }
 
+/* ── ROTATE BUTTON (tablet only) ── */
+.rotate-btn{display:none;}
+@media(min-width:768px){
+  .rotate-btn{display:flex;margin-top:auto !important;color:var(--muted2);}
+  .rotate-btn:hover{color:var(--muted);}
+}
+
+/* ── FORCE LANDSCAPE via CSS transform ── */
+body.rotated{
+  transform-origin:top left;
+  transform:rotate(90deg) translateX(0);
+  width:100vh;
+  height:100vw;
+  overflow:hidden;
+  position:fixed;
+  top:0;left:0;
+}
+
 /* ── TABLET 2-COLUMN LAYOUT ── */
 @media(min-width:768px){
   /* schedule screen: day-strip becomes sidebar */
@@ -496,6 +514,11 @@ body{
   <button class="nav-btn" id="nav-chat" onclick="goScreen('chat')">
     <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     AI Chat
+  </button>
+  <!-- rotate button: shows on tablet only -->
+  <button class="nav-btn rotate-btn" id="rotate-btn" onclick="toggleRotate()" title="หมุนจอ">
+    <svg id="rotate-icon" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+    หมุนจอ
   </button>
 </nav>
 
@@ -1017,6 +1040,36 @@ async function sendMessage(text){
 const quickSend=t=>sendMessage(t);
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
+
+/* ════════════════════ ROTATE (tablet) ════════════════════ */
+let isRotated=false;
+function toggleRotate(){
+  isRotated=!isRotated;
+  const btn=document.getElementById('rotate-btn');
+  const icon=document.getElementById('rotate-icon');
+  if(isRotated){
+    // landscape: rotate body 90deg, swap width/height
+    const w=window.screen.width, h=window.screen.height;
+    const short=Math.min(w,h), long=Math.max(w,h);
+    document.body.style.cssText=`
+      transform:rotate(90deg) translateX(0) translateY(-${short}px);
+      transform-origin:top left;
+      width:${long}px;
+      height:${short}px;
+      overflow:hidden;
+      position:fixed;
+      top:0;left:0;
+    `;
+    icon.style.transform='rotate(-90deg)';
+    btn.style.color='var(--blue)';
+  } else {
+    document.body.style.cssText='';
+    icon.style.transform='';
+    btn.style.color='';
+  }
+  // rebuild layout after rotation
+  setTimeout(()=>{ buildSlides(); goDay(activeDay,false); },50);
+}
 
 /* ════════════════════ INIT ════════════════════ */
 function init(){
