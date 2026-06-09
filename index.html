@@ -2,325 +2,364 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ตารางทบทวน</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Study Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0d14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Study">
+<link rel="apple-touch-icon" href="icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #0f1117; --surface: #181c27; --surface2: #1f2436;
-  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
-  --text: #e8eaf0; --muted: #7a8099;
-  --accent: #4f8ef7; --accent-dim: rgba(79,142,247,0.15);
-  --green: #3ecf8e; --green-dim: rgba(62,207,142,0.12);
-  --amber: #f5a623;
-  --font: 'Noto Sans Thai', sans-serif; --mono: 'JetBrains Mono', monospace;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0d14;--s1:#11151f;--s2:#181d2b;--s3:#1e2436;
+  --b1:rgba(255,255,255,.06);--b2:rgba(255,255,255,.11);--b3:rgba(255,255,255,.18);
+  --txt:#eceef4;--muted:#6b7490;--muted2:#4a5068;
+  --blue:#4f8ef7;--blue-d:rgba(79,142,247,.16);--blue-d2:rgba(79,142,247,.08);
+  --green:#34d399;--green-d:rgba(52,211,153,.14);
+  --amber:#f59e0b;--amber-d:rgba(245,158,11,.14);
+  --purple:#a78bfa;--red:#f87171;--pink:#f472b6;
+  --font:'Noto Sans Thai',sans-serif;--mono:'JetBrains Mono',monospace;
+  --nav-h:60px;--safe-b:env(safe-area-inset-bottom,0px);
 }
-body {
-  background: var(--bg); color: var(--text);
-  font-family: var(--font); height: 100vh;
-  display: flex; flex-direction: column; overflow: hidden;
-}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:var(--font);}
 
-/* TOPBAR */
-.topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 18px; border-bottom: 1px solid var(--border);
-  background: var(--surface); flex-shrink: 0;
-}
-.topbar-title { font-size: 13px; font-weight: 500; }
-.topbar-title span { color: var(--accent); }
-.week-dots { display: flex; align-items: center; gap: 5px; }
-.wdot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); transition: background .3s; }
-.wdot.done { background: var(--green); }
-.wdot.active { background: var(--accent); box-shadow: 0 0 5px var(--accent); }
-.wdot.classday { background: rgba(245,166,35,.4); }
-.wdot.classday.done { background: var(--green); }
-.wsep { width: 1px; height: 8px; background: var(--border2); margin: 0 2px; }
-.week-label { font-size: 11px; font-family: var(--mono); color: var(--muted); margin-right: 6px; }
+/* ── SCREENS ── */
+.screen{position:absolute;inset:0;bottom:calc(var(--nav-h) + var(--safe-b));display:flex;flex-direction:column;overflow:hidden;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .22s ease,transform .22s ease;}
+.screen.active{opacity:1;pointer-events:all;transform:none;}
 
-/* MAIN */
-.main { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+/* ── BOTTOM NAV ── */
+.nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-b));padding-bottom:var(--safe-b);background:var(--s1);border-top:1px solid var(--b1);display:flex;align-items:stretch;z-index:100;}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;cursor:pointer;color:var(--muted);font-family:var(--font);font-size:10px;font-weight:500;transition:color .18s;position:relative;}
+.nav-btn.active{color:var(--blue);}
+.nav-btn svg{width:22px;height:22px;stroke-width:1.8;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;}
+.sync-dot{position:absolute;top:8px;right:calc(50% - 13px);width:7px;height:7px;border-radius:50%;border:2px solid var(--s1);display:none;}
+.sync-dot.show{display:block;}
+.sync-dot.ok{background:var(--green);}
+.sync-dot.err{background:var(--red);}
+.sync-dot.loading{background:var(--amber);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* ── LEFT: vertical scroll slider ── */
-.left-panel {
-  width: 270px; flex-shrink: 0;
-  display: flex; flex-direction: column;
-  border-right: 1px solid var(--border);
-  position: relative;
-  min-height: 0;
-}
+/* ══ SCREEN 1: SCHEDULE ══ */
+.sch-header{padding:16px 18px 10px;background:var(--s1);border-bottom:1px solid var(--b1);flex-shrink:0;}
+.sch-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sch-title{font-size:18px;font-weight:700;letter-spacing:-.02em;}
+.sch-title span{color:var(--blue);}
+.week-prog{display:flex;align-items:center;gap:4px;}
+.wp-dot{width:6px;height:6px;border-radius:50%;background:var(--b2);transition:background .25s;}
+.wp-dot.done{background:var(--green);}
+.wp-dot.cur{background:var(--blue);box-shadow:0 0 5px var(--blue);}
+.wp-dot.cls{background:var(--amber-d);border:1px solid rgba(245,158,11,.4);}
+.wp-dot.cls.done{background:var(--green);border-color:var(--green);}
+.wp-sep{width:1px;height:6px;background:var(--b2);margin:0 2px;}
+.wp-label{font-size:10px;font-family:var(--mono);color:var(--muted);margin-right:4px;}
+.day-strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 2px 2px;}
+.day-strip::-webkit-scrollbar{display:none;}
+.ds-pill{flex-shrink:0;padding:6px 12px;border-radius:20px;border:1.5px solid var(--b2);background:transparent;color:var(--muted);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;position:relative;}
+.ds-pill.active{background:var(--blue-d);border-color:var(--blue);color:var(--txt);}
+.ds-pill.cls{border-color:rgba(245,158,11,.4);color:var(--amber);}
+.ds-pill.cls.active{background:var(--amber-d);border-color:var(--amber);}
+.ds-pip{width:4px;height:4px;border-radius:50%;background:var(--green);position:absolute;top:4px;right:6px;opacity:0;}
+.ds-pill.partial .ds-pip{opacity:.5;}
+.ds-pill.full .ds-pip{opacity:1;}
+.day-viewport{flex:1;overflow:hidden;position:relative;}
+.day-track{display:flex;height:100%;transition:transform .32s cubic-bezier(.4,0,.2,1);}
+.day-slide{flex-shrink:0;width:100%;height:100%;overflow-y:auto;overscroll-behavior:contain;}
+.day-slide::-webkit-scrollbar{display:none;}
+.slide-inner{padding:12px 16px 16px;display:flex;flex-direction:column;gap:8px;}
+.slide-day-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;background:var(--s2);border:1px solid var(--b1);}
+.sdh-name{font-size:14px;font-weight:600;}
+.sdh-right{display:flex;align-items:center;gap:8px;}
+.sdh-count{font-size:11px;font-family:var(--mono);color:var(--muted);}
+.sdh-bar{width:52px;height:4px;background:var(--b2);border-radius:2px;overflow:hidden;}
+.sdh-fill{height:100%;background:linear-gradient(90deg,var(--green),#6ee7b7);border-radius:2px;transition:width .35s;}
+.session-card{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:14px;background:var(--s2);border:1.5px solid var(--b1);cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none;}
+.session-card:active{transform:scale(.98);}
+.session-card.checked{background:var(--green-d);border-color:rgba(52,211,153,.25);}
+.sc-check{width:20px;height:20px;border-radius:6px;flex-shrink:0;border:2px solid var(--b3);margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.session-card.checked .sc-check{background:var(--green);border-color:var(--green);}
+.session-card.checked .sc-check::after{content:'';width:9px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg) translateY(-1px);display:block;}
+.sc-body{flex:1;min-width:0;}
+.sc-label{font-size:13px;font-weight:500;color:var(--muted);transition:color .15s;line-height:1.4;}
+.session-card.checked .sc-label{color:var(--green);text-decoration:line-through;text-decoration-color:rgba(52,211,153,.4);}
+.sc-sub{font-size:11px;color:var(--muted2);margin-top:2px;}
+.sc-time{display:inline-block;font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:4px;background:var(--amber-d);color:var(--amber);margin-left:5px;vertical-align:middle;}
+.topic-field{width:100%;margin-top:7px;background:var(--s3);border:1.5px solid var(--b2);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--txt);font-family:var(--font);outline:none;transition:border-color .15s;}
+.topic-field:focus{border-color:var(--blue);}
+.tag-pill{display:inline-block;font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:4px;margin-right:4px;vertical-align:middle;}
+.tag-math{background:rgba(79,142,247,.15);color:var(--blue);}
+.tag-elec{background:rgba(167,139,250,.15);color:var(--purple);}
+.tag-dig{background:rgba(52,211,153,.15);color:var(--green);}
+.tag-phys{background:rgba(245,158,11,.15);color:var(--amber);}
+.tag-mech{background:rgba(248,113,113,.15);color:var(--red);}
 
-/* scroll container: snap per child */
-.days-scroll {
-  flex: 1;
-  overflow-y: scroll;
-  scroll-snap-type: y mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.days-scroll::-webkit-scrollbar { display: none; }
+/* ══ SCREEN 2: STATS ══ */
+#screen-stats{overflow-y:auto;}
+.stats-scroll{padding:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:16px;}
+.stats-hdr{font-size:18px;font-weight:700;padding:16px 18px 0;}
+.stat-card{background:var(--s2);border:1px solid var(--b1);border-radius:16px;padding:16px;}
+.stat-card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+/* streak row */
+.streak-row{display:flex;gap:10px;}
+.streak-box{flex:1;background:var(--s3);border-radius:12px;padding:12px;text-align:center;}
+.streak-num{font-size:28px;font-weight:700;font-family:var(--mono);}
+.streak-num.fire{color:var(--amber);}
+.streak-num.blue{color:var(--blue);}
+.streak-num.green{color:var(--green);}
+.streak-lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+/* heatmap */
+.heatmap{display:flex;flex-direction:column;gap:3px;}
+.hm-row{display:flex;gap:3px;align-items:center;}
+.hm-lbl{font-size:9px;font-family:var(--mono);color:var(--muted2);width:22px;flex-shrink:0;}
+.hm-cell{width:12px;height:12px;border-radius:2px;background:var(--b1);flex-shrink:0;transition:background .2s;}
+.hm-cell.l1{background:rgba(52,211,153,.2);}
+.hm-cell.l2{background:rgba(52,211,153,.45);}
+.hm-cell.l3{background:rgba(52,211,153,.7);}
+.hm-cell.l4{background:var(--green);}
+.hm-cell.today-border{outline:1.5px solid var(--blue);outline-offset:1px;}
+/* subject bars */
+.subj-bar-row{display:flex;flex-direction:column;gap:8px;}
+.sbr{display:flex;align-items:center;gap:10px;}
+.sbr-name{font-size:11px;font-family:var(--mono);width:62px;flex-shrink:0;color:var(--muted);}
+.sbr-track{flex:1;height:8px;background:var(--b1);border-radius:4px;overflow:hidden;}
+.sbr-fill{height:100%;border-radius:4px;transition:width .5s;}
+.sbr-cnt{font-size:10px;font-family:var(--mono);color:var(--muted2);width:24px;text-align:right;flex-shrink:0;}
+/* topic history */
+.topic-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;}
+.topic-list::-webkit-scrollbar{display:none;}
+.topic-item{background:var(--s3);border-radius:10px;padding:9px 12px;}
+.topic-date{font-size:10px;font-family:var(--mono);color:var(--muted2);margin-bottom:3px;}
+.topic-text{font-size:12.5px;color:var(--txt);}
+.topic-subj{font-size:10px;margin-top:3px;}
+.empty-stats{text-align:center;color:var(--muted);font-size:12px;padding:20px 0;opacity:.6;}
 
-/* each day card fills the panel height exactly → snap */
-.day-card {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  height: 100%;          /* filled by JS: panel height */
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid var(--border);
-  transition: background .2s;
-}
-.day-card.classday { background: rgba(245,166,35,.03); }
+/* ══ SCREEN 3: CHAT ══ */
+.chat-header{padding:14px 16px 10px;background:var(--s1);border-bottom:1px solid var(--b1);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;}
+.chat-header-left{display:flex;flex-direction:column;gap:2px;}
+.chat-title{font-size:16px;font-weight:700;}
+.chat-sub{font-size:11px;color:var(--muted);}
+.key-btn{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:10px;background:var(--s3);border:1px solid var(--b2);color:var(--muted);font-size:11px;font-family:var(--font);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.key-btn.set{border-color:rgba(52,211,153,.3);color:var(--green);}
+.ctx-bar{display:flex;gap:5px;padding:8px 16px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--b1);flex-shrink:0;}
+.ctx-bar::-webkit-scrollbar{display:none;}
+.ctx-chip{font-size:10px;font-family:var(--mono);padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.messages{flex:1;overflow-y:auto;padding:14px 14px 4px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain;}
+.messages::-webkit-scrollbar{display:none;}
+.msg{display:flex;gap:7px;max-width:90%;animation:fadeUp .2s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.mavatar{width:26px;height:26px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.msg.ai .mavatar{background:var(--blue-d);color:var(--blue);}
+.msg.user .mavatar{background:var(--green-d);color:var(--green);}
+.mbubble{padding:9px 12px;border-radius:14px;font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word;}
+.msg.ai .mbubble{background:var(--s2);border:1px solid var(--b1);border-top-left-radius:4px;}
+.msg.user .mbubble{background:var(--blue-d);border:1px solid rgba(79,142,247,.2);border-top-right-radius:4px;}
+.tydot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--muted);margin:0 2px;animation:bounce 1.1s infinite;}
+.tydot:nth-child(2){animation-delay:.18s}.tydot:nth-child(3){animation-delay:.36s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-5px);opacity:1}}
+.empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);text-align:center;padding:20px;}
+.empty-chat .ico{font-size:36px;opacity:.2;}
+.quick-row{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.quick-row::-webkit-scrollbar{display:none;}
+.qchip{flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid var(--b2);background:var(--s2);color:var(--muted);font-size:11.5px;font-family:var(--font);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.qchip:active{border-color:var(--blue);color:var(--blue);}
+.input-row{padding:10px 12px;display:flex;gap:8px;align-items:flex-end;background:var(--s1);border-top:1px solid var(--b1);flex-shrink:0;}
+.input-box{flex:1;background:var(--s3);border:1.5px solid var(--b2);border-radius:14px;padding:10px 13px;display:flex;align-items:flex-end;gap:8px;transition:border-color .18s;}
+.input-box:focus-within{border-color:var(--blue);}
+#user-input{flex:1;background:none;border:none;outline:none;color:var(--txt);font-family:var(--font);font-size:14px;resize:none;max-height:110px;line-height:1.5;}
+#user-input::placeholder{color:var(--muted2);}
+.send-btn{width:34px;height:34px;border-radius:10px;background:var(--blue);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s,transform .1s;}
+.send-btn:active{transform:scale(.9);} .send-btn:disabled{opacity:.3;cursor:default;}
+.send-btn svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
 
-/* day header inside card */
-.day-hdr {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px 8px;
-  border-bottom: 1px solid var(--border); flex-shrink: 0;
-}
-.day-hdr-name { font-size: 13px; font-weight: 500; }
-.day-hdr-right { display: flex; align-items: center; gap: 8px; }
-.day-count { font-size: 10px; font-family: var(--mono); color: var(--muted); }
-.prog-bar { width: 48px; height: 3px; background: var(--border2); border-radius: 2px; overflow: hidden; }
-.prog-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .3s; }
+/* ── MODALS ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;z-index:200;backdrop-filter:blur(6px);}
+.modal-backdrop.open{display:flex;}
+.modal-sheet{width:100%;max-width:480px;background:var(--s2);border-radius:24px 24px 0 0;padding:20px 20px calc(20px + var(--safe-b));border-top:1px solid var(--b2);animation:slideUp .28s cubic-bezier(.4,0,.2,1);}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--b3);margin:0 auto 18px;}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:5px;}
+.modal-sub{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:16px;}
+.modal-sub a{color:var(--blue);text-decoration:none;}
+.modal-sub code{background:var(--s3);padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:11px;}
+.modal-input{width:100%;background:var(--s3);border:1.5px solid var(--b2);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--txt);font-family:var(--mono);outline:none;margin-bottom:12px;transition:border-color .15s;}
+.modal-input:focus{border-color:var(--blue);}
+.modal-actions{display:flex;gap:8px;}
+.modal-btn{flex:1;padding:12px;border-radius:12px;font-size:14px;font-weight:600;font-family:var(--font);border:none;cursor:pointer;transition:opacity .15s;}
+.modal-btn:active{opacity:.8;}
+.modal-btn.primary{background:var(--blue);color:#fff;}
+.modal-btn.danger{background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.25);}
+.modal-btn.ghost{background:var(--s3);color:var(--muted);border:1px solid var(--b2);}
+.modal-section{margin-bottom:14px;}
+.modal-section-title{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;}
 
-/* sessions list inside card — scrollable if overflow */
-.sessions-list {
-  flex: 1; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px;
-}
-.sessions-list::-webkit-scrollbar { width: 3px; }
-.sessions-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-.session-item {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding: 7px 8px; border-radius: 7px;
-  cursor: pointer; border: 1px solid transparent;
-  transition: background .12s, border-color .12s;
-}
-.session-item:hover { background: var(--surface2); }
-.session-item.checked { background: var(--green-dim); border-color: rgba(62,207,142,.15); }
-.scheck {
-  width: 15px; height: 15px; border-radius: 4px; flex-shrink: 0;
-  border: 1.5px solid var(--border2); margin-top: 1px;
-  display: flex; align-items: center; justify-content: center; transition: all .12s;
-}
-.session-item.checked .scheck { background: var(--green); border-color: var(--green); }
-.session-item.checked .scheck::after {
-  content:''; width:7px; height:4px;
-  border-left:2px solid #fff; border-bottom:2px solid #fff;
-  transform:rotate(-45deg) translateY(-1px); display:block;
-}
-.slabel { font-size: 12px; color: var(--muted); line-height: 1.4; transition: color .12s; }
-.session-item.checked .slabel { color: var(--green); text-decoration: line-through; text-decoration-color: rgba(62,207,142,.4); }
-.ssub { font-size: 10px; color: var(--muted); opacity: .55; margin-top: 1px; }
-.stimetag {
-  font-size: 9px; font-family: var(--mono);
-  padding: 1px 4px; border-radius: 3px;
-  background: rgba(245,166,35,.15); color: var(--amber);
-  margin-left: 4px; vertical-align: middle;
-}
-.topic-input {
-  width: 100%; margin-top: 4px;
-  background: var(--surface); border: 1px solid var(--border2); border-radius: 5px;
-  padding: 3px 7px; font-size: 11px; color: var(--text);
-  font-family: var(--font); outline: none;
-}
-.topic-input:focus { border-color: var(--accent); }
-
-/* scroll indicator dots on the right edge */
-.scroll-indicator {
-  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-  display: flex; flex-direction: column; gap: 5px; z-index: 10;
-}
-.si-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--border2); cursor: pointer;
-  transition: all .2s; border: none; padding: 0;
-}
-.si-dot.active { background: var(--accent); transform: scale(1.4); }
-.si-dot.done { background: var(--green); }
-.si-dot.classday { background: rgba(245,166,35,.4); }
-.si-dot.classday.active { background: var(--amber); }
-
-/* ── CHAT ── */
-.chat-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.chat-ctx {
-  padding: 7px 14px; border-bottom: 1px solid var(--border);
-  background: var(--surface); display: flex; align-items: center; gap: 7px; flex-shrink: 0; flex-wrap: wrap;
-}
-.ctx-label { font-size: 11px; color: var(--muted); }
-.ctx-tag { font-size: 10px; font-family: var(--mono); padding: 2px 7px; border-radius: 20px; }
-.ctx-tag.math { background: rgba(79,142,247,.15); color: #4f8ef7; }
-.ctx-tag.elec { background: rgba(167,139,250,.15); color: #a78bfa; }
-.ctx-tag.dig  { background: rgba(62,207,142,.15);  color: #3ecf8e; }
-.ctx-tag.phys { background: rgba(245,166,35,.15);  color: #f5a623; }
-.ctx-tag.mech { background: rgba(255,107,107,.15); color: #ff6b6b; }
-
-.messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 11px; scroll-behavior: smooth; }
-.messages::-webkit-scrollbar { width: 3px; }
-.messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-.msg { display: flex; gap: 8px; max-width: 88%; animation: fadeUp .2s ease; }
-@keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
-.msg.user { align-self: flex-end; flex-direction: row-reverse; }
-.mavatar {
-  width: 25px; height: 25px; border-radius: 7px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600;
-}
-.msg.ai .mavatar { background: var(--accent-dim); color: var(--accent); }
-.msg.user .mavatar { background: var(--green-dim); color: var(--green); }
-.mbubble { padding: 8px 12px; border-radius: 10px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; }
-.msg.ai .mbubble { background: var(--surface2); border: 1px solid var(--border); border-top-left-radius: 3px; }
-.msg.user .mbubble { background: var(--accent-dim); border: 1px solid rgba(79,142,247,.2); border-top-right-radius: 3px; }
-.typing-dot { display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--muted); margin:0 2px; animation:bounce 1.2s infinite; }
-.typing-dot:nth-child(2){animation-delay:.2s} .typing-dot:nth-child(3){animation-delay:.4s}
-@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
-.empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--muted); font-size:12px; text-align:center; }
-
-.quick-prompts { display:flex; gap:6px; padding:8px 12px; overflow-x:auto; border-top:1px solid var(--border); flex-shrink:0; scrollbar-width:none; }
-.quick-prompts::-webkit-scrollbar{display:none}
-.qbtn { flex-shrink:0; padding:5px 10px; border-radius:20px; border:1px solid var(--border2); background:var(--surface); color:var(--muted); font-size:11px; font-family:var(--font); cursor:pointer; white-space:nowrap; transition:all .15s; }
-.qbtn:hover { border-color:var(--accent); color:var(--accent); }
-
-.input-area { padding:10px 14px; border-top:1px solid var(--border); background:var(--surface); display:flex; gap:8px; align-items:flex-end; flex-shrink:0; }
-.input-wrap { flex:1; background:var(--surface2); border:1px solid var(--border2); border-radius:10px; padding:8px 11px; display:flex; align-items:flex-end; gap:8px; transition:border-color .2s; }
-.input-wrap:focus-within { border-color:var(--accent); }
-#user-input { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:var(--font); font-size:13px; resize:none; max-height:100px; line-height:1.5; }
-#user-input::placeholder { color:var(--muted); }
-.send-btn { width:28px; height:28px; border-radius:7px; background:var(--accent); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity .2s,transform .1s; }
-.send-btn:hover{opacity:.85} .send-btn:active{transform:scale(.92)} .send-btn:disabled{opacity:.3;cursor:default}
-.send-btn svg{width:12px;height:12px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-
-/* ── API KEY MODAL ── */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 999;
-  background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-}
-.modal-box {
-  background: var(--surface2); border: 1px solid var(--border2);
-  border-radius: 14px; padding: 28px 28px 24px; width: 360px; max-width: 90vw;
-}
-.modal-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
-.modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; line-height: 1.6; }
-.modal-sub a { color: var(--accent); text-decoration: none; }
-.modal-input {
-  width: 100%; background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 8px; padding: 9px 12px; font-size: 13px; color: var(--text);
-  font-family: var(--mono); outline: none; margin-bottom: 12px;
-  transition: border-color .2s;
-}
-.modal-input:focus { border-color: var(--accent); }
-.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-.modal-btn {
-  padding: 7px 16px; border-radius: 7px; font-size: 13px;
-  font-family: var(--font); cursor: pointer; border: none; transition: opacity .15s;
-}
-.modal-btn.primary { background: var(--accent); color: #fff; }
-.modal-btn.primary:hover { opacity: .85; }
-.modal-btn.ghost { background: transparent; border: 1px solid var(--border2); color: var(--muted); }
-.modal-btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
-
-/* key indicator in topbar */
-.key-status {
-  font-size: 10px; font-family: var(--mono);
-  padding: 3px 8px; border-radius: 20px; cursor: pointer;
-  border: 1px solid var(--border2); color: var(--muted);
-  background: transparent; transition: all .15s; margin-left: 8px;
-}
-.key-status.set { border-color: rgba(62,207,142,.4); color: var(--green); }
-.key-status:hover { border-color: var(--accent); color: var(--accent); }
+/* ══ SCREEN 2: STATS ══ */
+#screen-stats{background:var(--bg);}
+.stats-hdr{padding:16px 18px 12px;font-size:18px;font-weight:700;background:var(--s1);border-bottom:1px solid var(--b1);flex-shrink:0;}
+.stats-scroll{flex:1;overflow-y:auto;padding:12px 14px 16px;display:flex;flex-direction:column;gap:12px;}
+.stats-scroll::-webkit-scrollbar{display:none;}
+.stat-card{background:var(--s2);border:1px solid var(--b1);border-radius:16px;padding:14px 16px;}
+.stat-card-title{font-size:13px;font-weight:600;margin-bottom:12px;color:var(--txt);}
+/* streak */
+.streak-row{display:flex;gap:8px;}
+.streak-box{flex:1;background:var(--s3);border-radius:12px;padding:12px 8px;text-align:center;}
+.streak-num{font-size:28px;font-weight:700;font-family:var(--mono);line-height:1;}
+.streak-num.fire{color:var(--amber);}
+.streak-num.blue{color:var(--blue);}
+.streak-num.green{color:var(--green);}
+.streak-lbl{font-size:10px;color:var(--muted);margin-top:4px;}
+/* heatmap */
+.heatmap{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px;}
+.heatmap::-webkit-scrollbar{display:none;}
+.hm-col{display:flex;flex-direction:column;gap:3px;}
+.hm-cell{width:12px;height:12px;border-radius:3px;background:var(--s3);transition:background .2s;}
+.hm-cell.l1{background:rgba(52,211,153,.25);}
+.hm-cell.l2{background:rgba(52,211,153,.5);}
+.hm-cell.l3{background:rgba(52,211,153,.75);}
+.hm-cell.l4{background:var(--green);}
+.hm-cell.today-border{outline:2px solid var(--blue);outline-offset:1px;}
+.hm-row{display:flex;align-items:center;gap:3px;margin-bottom:3px;}
+.hm-lbl{width:16px;font-size:9px;color:var(--muted2);font-family:var(--mono);text-align:right;flex-shrink:0;}
+/* subject bars */
+.subj-bar-row{display:flex;flex-direction:column;gap:8px;}
+.sbr{display:flex;align-items:center;gap:8px;}
+.sbr-name{width:44px;text-align:center;flex-shrink:0;}
+.sbr-track{flex:1;height:8px;background:var(--s3);border-radius:4px;overflow:hidden;}
+.sbr-fill{height:100%;border-radius:4px;transition:width .5s ease;}
+.sbr-cnt{font-size:11px;font-family:var(--mono);color:var(--muted);width:24px;text-align:right;flex-shrink:0;}
+/* topic history */
+.topic-list{display:flex;flex-direction:column;gap:6px;}
+.topic-item{background:var(--s3);border-radius:10px;padding:10px 12px;}
+.topic-date{font-size:10px;font-family:var(--mono);color:var(--muted2);margin-bottom:3px;}
+.topic-text{font-size:13px;color:var(--txt);font-weight:500;}
+.topic-subj{display:flex;align-items:center;gap:6px;font-size:10px;margin-top:4px;}
+.empty-stats{text-align:center;color:var(--muted);font-size:12px;padding:20px 0;opacity:.6;}
+/* sync dot */
+.sync-dot{width:7px;height:7px;border-radius:50%;display:none;position:absolute;top:8px;right:calc(50% - 20px);}
+.sync-dot.show{display:block;}
+.sync-dot.loading{background:var(--amber);animation:pulse 1s infinite;}
+.sync-dot.ok{background:var(--green);}
+.sync-dot.err{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 </style>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0f1117">
-  <link rel="apple-touch-icon" href="icon.svg">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Study Tracker">
 </head>
 <body>
 
-<div class="topbar">
-  <div class="topbar-title">📚 study tracker — <span>ทั้งสัปดาห์</span></div>
-  <div style="display:flex;align-items:center;gap:6px">
-    <div class="week-dots">
-      <span class="week-label" id="week-label">0/7</span>
-      <div class="wdot" id="dot-0"></div>
-      <div class="wdot" id="dot-1"></div>
-      <div class="wdot" id="dot-2"></div>
-      <div class="wdot" id="dot-3"></div>
-      <div class="wdot" id="dot-4"></div>
-      <div class="wsep"></div>
-      <div class="wdot classday" id="dot-5"></div>
-      <div class="wdot classday" id="dot-6"></div>
+<!-- ══ SCREEN: SCHEDULE ══ -->
+<div class="screen active" id="screen-schedule">
+  <div class="sch-header">
+    <div class="sch-top">
+      <div class="sch-title">📚 <span>Study</span> Tracker</div>
+      <div class="week-prog">
+        <span class="wp-label" id="wp-label">0/7</span>
+        <div class="wp-dot" id="wp-0"></div><div class="wp-dot" id="wp-1"></div>
+        <div class="wp-dot" id="wp-2"></div><div class="wp-dot" id="wp-3"></div>
+        <div class="wp-dot" id="wp-4"></div><div class="wp-sep"></div>
+        <div class="wp-dot cls" id="wp-5"></div><div class="wp-dot cls" id="wp-6"></div>
+      </div>
     </div>
-    <button class="key-status" id="key-status" onclick="openKeyModal()">🔑 ใส่ API key</button>
+    <div class="day-strip" id="day-strip"></div>
+  </div>
+  <div class="day-viewport" id="day-viewport">
+    <div class="day-track" id="day-track"></div>
   </div>
 </div>
 
-<!-- API KEY MODAL -->
-<div class="modal-overlay" id="key-modal" style="display:none">
-  <div class="modal-box">
-    <div class="modal-title">🔑 OpenRouter API Key</div>
-    <div class="modal-sub">
-      ใส่ key เพื่อให้ chat ทำงานได้ (ฟรี!)<br>
-      key จะบันทึกใน localStorage บนเครื่องของคุณเท่านั้น<br>
-      รับ key ได้ที่ <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>
+<!-- ══ SCREEN: STATS ══ -->
+<div class="screen" id="screen-stats">
+  <div class="stats-hdr">📊 สถิติ</div>
+  <div class="stats-scroll" id="stats-scroll"></div>
+</div>
+
+<!-- ══ SCREEN: CHAT ══ -->
+<div class="screen" id="screen-chat">
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="chat-title">💬 AI ช่วยติว</div>
+      <div class="chat-sub" id="chat-day-sub">—</div>
     </div>
-    <input class="modal-input" id="key-input" type="password" placeholder="sk-or-..." spellcheck="false">
+    <button class="key-btn" id="key-btn" onclick="openSettingsModal()">⚙️ ตั้งค่า</button>
+  </div>
+  <div class="ctx-bar">
+    <span class="ctx-chip tag-math">MATH</span>
+    <span class="ctx-chip tag-elec">EECC</span>
+    <span class="ctx-chip tag-dig">MIIC</span>
+    <span class="ctx-chip tag-phys">PHYS</span>
+    <span class="ctx-chip tag-mech">MECH</span>
+  </div>
+  <div class="messages" id="messages">
+    <div class="empty-chat" id="empty-chat">
+      <div class="ico">🤖</div>
+      <p>ถามเรื่องที่เรียนได้เลยครับ<br><span style="font-size:11px;opacity:.6">Claude รู้ตารางและ session ที่ติ๊กไว้</span></p>
+    </div>
+  </div>
+  <div class="quick-row">
+    <button class="qchip" onclick="quickSend('อธิบาย derivative ให้เข้าใจง่ายๆ')">📐 derivative</button>
+    <button class="qchip" onclick="quickSend('ทำโจทย์ MATH ไม่ออก ช่วยวิธีคิดหน่อย')">🤔 ติดโจทย์</button>
+    <button class="qchip" onclick="quickSend('สรุปเนื้อหาที่เรียนวันนี้')">📝 สรุปวันนี้</button>
+    <button class="qchip" onclick="quickSend('พรุ่งนี้ควรเรียนเรื่องอะไรต่อ')">📅 พรุ่งนี้</button>
+    <button class="qchip" onclick="quickSend('ทบทวน EECC วงจรไฟฟ้าเบื้องต้น')">⚡ EECC</button>
+  </div>
+  <div class="input-row">
+    <div class="input-box">
+      <textarea id="user-input" rows="1" placeholder="ถามเรื่องที่เรียน..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    </div>
+    <button class="send-btn" id="send-btn" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══ BOTTOM NAV ══ -->
+<nav class="nav">
+  <button class="nav-btn active" id="nav-schedule" onclick="goScreen('schedule')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    ตาราง
+  </button>
+  <button class="nav-btn" id="nav-stats" onclick="goScreen('stats')">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    สถิติ
+    <span class="sync-dot" id="sync-dot"></span>
+  </button>
+  <button class="nav-btn" id="nav-chat" onclick="goScreen('chat')">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    AI Chat
+  </button>
+</nav>
+
+<!-- ══ MODAL: SETTINGS ══ -->
+<div class="modal-backdrop" id="settings-modal" onclick="handleBackdrop(event,'settings-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚙️ ตั้งค่า</div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">🔑 OpenRouter API Key (AI Chat)</div>
+      <input class="modal-input" id="or-key-input" type="password" placeholder="sk-or-...">
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">☁️ GitHub Gist Sync</div>
+      <div class="modal-sub" style="margin-bottom:8px">
+        สร้าง Personal Access Token ที่<br>
+        <a href="https://github.com/settings/tokens/new?scopes=gist&description=StudyTracker" target="_blank">github.com/settings/tokens</a><br>
+        เลือก scope: <code>gist</code> แล้ว copy token มาใส่
+      </div>
+      <input class="modal-input" id="gh-token-input" type="password" placeholder="ghp_...">
+    </div>
+
     <div class="modal-actions">
-      <button class="modal-btn ghost" onclick="closeKeyModal()">ยกเลิก</button>
-      <button class="modal-btn ghost" onclick="clearKey()" id="clear-btn" style="display:none">ลบ key</button>
-      <button class="modal-btn primary" onclick="saveKey()">บันทึก</button>
-    </div>
-  </div>
-</div>
-
-<div class="main">
-
-  <!-- LEFT: vertical snap scroll -->
-  <div class="left-panel" id="left-panel">
-    <div class="days-scroll" id="days-scroll"></div>
-
-    <!-- dot indicators on right edge -->
-    <div class="scroll-indicator" id="scroll-indicator"></div>
-  </div>
-
-  <!-- RIGHT: chat -->
-  <div class="chat-panel">
-    <div class="chat-ctx">
-      <span class="ctx-label">บริบท:</span>
-      <span class="ctx-tag math">MATH0101</span>
-      <span class="ctx-tag elec">EECC0232</span>
-      <span class="ctx-tag dig">MIIC1120</span>
-      <span class="ctx-tag phys">PHYS0110</span>
-      <span class="ctx-tag mech">MECH0110</span>
-    </div>
-    <div class="messages" id="messages">
-      <div class="empty-state" id="empty-state">
-        <div style="font-size:26px;opacity:.2">💬</div>
-        <div>ถามเรื่องที่เรียนได้เลย<br><span style="font-size:10px;opacity:.6">Claude รู้ตารางและวิชาของคุณอยู่แล้ว</span></div>
-      </div>
-    </div>
-    <div class="quick-prompts">
-      <button class="qbtn" onclick="quickSend('อธิบาย derivative ให้เข้าใจง่ายๆ')">📐 derivative</button>
-      <button class="qbtn" onclick="quickSend('ทำโจทย์ MATH ไม่ออก ช่วยวิธีคิดหน่อย')">🤔 ติดโจทย์</button>
-      <button class="qbtn" onclick="quickSend('สรุปเนื้อหาที่เรียนวันนี้ให้หน่อย')">📝 สรุปวันนี้</button>
-      <button class="qbtn" onclick="quickSend('วางแผนว่าพรุ่งนี้ควรเรียนเรื่องอะไรต่อ')">📅 พรุ่งนี้</button>
-      <button class="qbtn" onclick="quickSend('ทบทวน EECC วงจรไฟฟ้าเบื้องต้นหน่อย')">⚡ EECC</button>
-    </div>
-    <div class="input-area">
-      <div class="input-wrap">
-        <textarea id="user-input" rows="1" placeholder="ถามเรื่องที่เรียน หรือขอสรุป..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-      </div>
-      <button class="send-btn" id="send-btn" onclick="sendMessage()">
-        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
+      <button class="modal-btn ghost" onclick="closeModal('settings-modal')">ยกเลิก</button>
+      <button class="modal-btn danger" id="clear-all-btn" onclick="clearAllKeys()">ลบทั้งหมด</button>
+      <button class="modal-btn primary" onclick="saveSettings()">บันทึก</button>
     </div>
   </div>
 </div>
 
 <script>
+/* ════════════════════ DATA ════════════════════ */
 const DAYS = [
   { name:'วันจันทร์', short:'จันทร์', isClassDay:false, sessions:[
     { id:'mon-1', label:'MATH0101 — ทบทวนโจทย์เสาร์', sub:'derivative / limit', tag:'math' },
@@ -363,336 +402,465 @@ const DAYS = [
   ]},
 ];
 
-let state = JSON.parse(localStorage.getItem('study_s4') || '{}');
-let messages = JSON.parse(localStorage.getItem('study_m4') || '[]');
+/* ════════════════════ STATE ════════════════════ */
+let state = JSON.parse(localStorage.getItem('st_s6')||'{}');
+// history: { "2024-06-09": { sessions:{id:bool}, topics:{id:str} } }
+let history = JSON.parse(localStorage.getItem('st_hist')||'{}');
+let msgs = JSON.parse(localStorage.getItem('st_m6')||'[]');
 const dayMap = {1:0,2:1,3:2,4:3,5:4,6:5,0:6};
-let activeDay = dayMap[new Date().getDay()] ?? 0;
+let activeDay = dayMap[new Date().getDay()]??0;
+let curScreen = 'schedule';
+let gistId = localStorage.getItem('st_gist_id')||'';
 
-const save = () => localStorage.setItem('study_s4', JSON.stringify(state));
-const saveMsgs = () => localStorage.setItem('study_m4', JSON.stringify(messages.slice(-30)));
-const doneCnt = i => DAYS[i].sessions.filter(s => state[s.id]).length;
+const todayKey = () => new Date().toISOString().slice(0,10);
+const save = () => {
+  localStorage.setItem('st_s6', JSON.stringify(state));
+  // snapshot today into history
+  const tk = todayKey();
+  if (!history[tk]) history[tk] = {sessions:{}, topics:{}};
+  DAYS.forEach(day => day.sessions.forEach(s => {
+    if (state[s.id]) history[tk].sessions[s.id] = true;
+    if (state[s.id+'_topic']) history[tk].topics[s.id] = state[s.id+'_topic'];
+  }));
+  localStorage.setItem('st_hist', JSON.stringify(history));
+  debouncedSync();
+};
+const saveMsgs = () => localStorage.setItem('st_m6', JSON.stringify(msgs.slice(-30)));
+const doneCnt = i => DAYS[i].sessions.filter(s=>state[s.id]).length;
 const isDone = i => doneCnt(i) === DAYS[i].sessions.length;
+const getOrKey = () => localStorage.getItem('st_orkey')||'';
+const getGhToken = () => localStorage.getItem('st_ghtoken')||'';
 
-/* ── API KEY ── */
-function getKey() { return localStorage.getItem('study_apikey') || ''; }
-function updateKeyStatus() {
-  const btn = document.getElementById('key-status');
-  const key = getKey();
-  if (key) {
-    btn.textContent = '🔑 key: …' + key.slice(-4);
-    btn.className = 'key-status set';
-  } else {
-    btn.textContent = '🔑 ใส่ API key';
-    btn.className = 'key-status';
+/* ════════════════════ GIST SYNC ════════════════════ */
+let syncTimer = null;
+function debouncedSync(){ clearTimeout(syncTimer); syncTimer=setTimeout(syncToGist,2000); }
+
+function setSyncDot(status){ // 'loading'|'ok'|'err'|'hide'
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot';
+  if(status==='hide'){return;}
+  dot.classList.add('show',status);
+}
+
+async function syncToGist(){
+  const token = getGhToken();
+  if(!token) return;
+  setSyncDot('loading');
+  const payload = JSON.stringify({ state, history }, null, 2);
+  const files = { 'study-tracker-data.json': { content: payload } };
+  try {
+    let res;
+    if(gistId){
+      res = await fetch(`https://api.github.com/gists/${gistId}`,{
+        method:'PATCH',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({files})
+      });
+    } else {
+      res = await fetch('https://api.github.com/gists',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({description:'Study Tracker Data',public:false,files})
+      });
+    }
+    const data = await res.json();
+    if(data.id){
+      gistId = data.id;
+      localStorage.setItem('st_gist_id', gistId);
+      setSyncDot('ok');
+      setTimeout(()=>setSyncDot('hide'),3000);
+    } else { throw new Error(data.message||'sync failed'); }
+  } catch(e){ setSyncDot('err'); console.error('Gist sync:',e); }
+}
+
+async function syncFromGist(){
+  const token = getGhToken();
+  if(!token||!gistId) return;
+  setSyncDot('loading');
+  try{
+    const res = await fetch(`https://api.github.com/gists/${gistId}`,{
+      headers:{'Authorization':'Bearer '+token}
+    });
+    const data = await res.json();
+    const content = data.files?.['study-tracker-data.json']?.content;
+    if(content){
+      const parsed = JSON.parse(content);
+      state = parsed.state||{};
+      history = parsed.history||{};
+      localStorage.setItem('st_s6', JSON.stringify(state));
+      localStorage.setItem('st_hist', JSON.stringify(history));
+      buildSlides(); goDay(activeDay,false);
+      buildStrip(); updateWeekDots();
+      setSyncDot('ok'); setTimeout(()=>setSyncDot('hide'),2000);
+    }
+  } catch(e){ setSyncDot('err'); }
+}
+
+/* ════════════════════ SCREEN NAV ════════════════════ */
+function goScreen(name){
+  curScreen=name;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if(name==='stats') renderStats();
+  if(name==='chat'){
+    document.getElementById('chat-day-sub').textContent='วันนี้: '+DAYS[activeDay].name;
+    setTimeout(()=>{ const m=document.getElementById('messages'); m.scrollTop=m.scrollHeight; },50);
   }
 }
-function openKeyModal() {
-  const key = getKey();
-  document.getElementById('key-input').value = key;
-  document.getElementById('clear-btn').style.display = key ? 'block' : 'none';
-  document.getElementById('key-modal').style.display = 'flex';
-  setTimeout(() => document.getElementById('key-input').focus(), 50);
-}
-function closeKeyModal() { document.getElementById('key-modal').style.display = 'none'; }
-function saveKey() {
-  const val = document.getElementById('key-input').value.trim();
-  if (!val) return;
-  localStorage.setItem('study_apikey', val);
-  updateKeyStatus();
-  closeKeyModal();
-}
-function clearKey() {
-  localStorage.removeItem('study_apikey');
-  document.getElementById('key-input').value = '';
-  updateKeyStatus();
-  closeKeyModal();
-}
-// close on backdrop click
-document.getElementById('key-modal').addEventListener('click', e => {
-  if (e.target.id === 'key-modal') closeKeyModal();
-});
-// enter key in input
-document.getElementById('key-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') saveKey();
-});
 
-/* ── BUILD CARDS ── */
-function buildCards() {
-  const scroll = document.getElementById('days-scroll');
-  const cardH = document.getElementById('left-panel').clientHeight;
-  scroll.innerHTML = '';
-
-  DAYS.forEach((day, idx) => {
-    const done = doneCnt(idx);
-    const total = day.sessions.length;
-    const pct = Math.round(done / total * 100);
-
-    const card = document.createElement('div');
-    card.className = 'day-card' + (day.isClassDay ? ' classday' : '');
-    card.id = 'card-' + idx;
-    card.style.height = cardH + 'px';
-
-    // header
-    const hdr = document.createElement('div');
-    hdr.className = 'day-hdr';
-    hdr.innerHTML = `<span class="day-hdr-name">${day.name}</span>
-      <div class="day-hdr-right">
-        <span class="day-count">${done}/${total}</span>
-        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
-      </div>`;
-    card.appendChild(hdr);
-
-    // sessions
-    const list = document.createElement('div');
-    list.className = 'sessions-list';
-    day.sessions.forEach(s => {
-      const checked = !!state[s.id];
-      const item = document.createElement('div');
-      item.className = 'session-item' + (checked ? ' checked' : '');
-      item.onclick = () => toggleSession(s.id, idx);
-      const topicVal = (state[s.id + '_topic'] || '').replace(/"/g, '&quot;');
-      const timeTag = s.time ? `<span class="stimetag">${s.time}</span>` : '';
-      const topicHtml = day.isClassDay
-        ? `<input class="topic-input" type="text" placeholder="เรียนถึงเรื่อง..." value="${topicVal}"
-            style="display:${checked ? 'block' : 'none'}"
-            onclick="event.stopPropagation()"
-            oninput="saveTopic('${s.id}', this.value)">`
-        : '';
-      item.innerHTML = `<div class="scheck"></div>
-        <div style="flex:1;min-width:0">
-          <div class="slabel">${s.label}${timeTag}</div>
-          <div class="ssub">${s.sub}</div>${topicHtml}
-        </div>`;
-      list.appendChild(item);
-    });
-    card.appendChild(list);
-    scroll.appendChild(card);
-  });
-
-  buildIndicator();
-}
-
-/* ── INDICATOR DOTS ── */
-function buildIndicator() {
-  const el = document.getElementById('scroll-indicator');
-  el.innerHTML = '';
-  DAYS.forEach((day, idx) => {
-    const btn = document.createElement('button');
-    btn.className = 'si-dot' + (day.isClassDay ? ' classday' : '');
-    btn.title = day.short;
-    btn.onclick = () => scrollToDay(idx);
+/* ════════════════════ SCHEDULE ════════════════════ */
+function buildStrip(){
+  const el=document.getElementById('day-strip'); el.innerHTML='';
+  DAYS.forEach((day,idx)=>{
+    const done=doneCnt(idx),tot=day.sessions.length;
+    let cls='ds-pill'+(day.isClassDay?' cls':'')+(idx===activeDay?' active':'');
+    if(done>0&&done<tot)cls+=' partial';
+    if(done===tot)cls+=' full';
+    const btn=document.createElement('button');
+    btn.className=cls;
+    btn.innerHTML=day.short+'<span class="ds-pip"></span>';
+    btn.onclick=()=>goDay(idx);
     el.appendChild(btn);
   });
-  updateIndicator();
 }
 
-function updateIndicator() {
-  const dots = document.querySelectorAll('.si-dot');
-  DAYS.forEach((_, idx) => {
-    const dot = dots[idx];
-    if (!dot) return;
-    let cls = 'si-dot' + (DAYS[idx].isClassDay ? ' classday' : '');
-    if (isDone(idx)) cls += ' done';
-    if (idx === activeDay) cls += ' active';
-    dot.className = cls;
+function buildSlides(){
+  const track=document.getElementById('day-track');
+  const vp=document.getElementById('day-viewport');
+  track.innerHTML='';
+  DAYS.forEach((day,idx)=>{
+    const slide=document.createElement('div');
+    slide.className='day-slide'; slide.id='slide-'+idx;
+    slide.style.width=vp.clientWidth+'px';
+    const done=doneCnt(idx),tot=day.sessions.length,pct=Math.round(done/tot*100);
+    const inner=document.createElement('div'); inner.className='slide-inner';
+    inner.innerHTML=`<div class="slide-day-hdr">
+      <span class="sdh-name">${day.name}</span>
+      <div class="sdh-right"><span class="sdh-count">${done}/${tot}</span>
+        <div class="sdh-bar"><div class="sdh-fill" style="width:${pct}%"></div></div></div></div>`;
+    day.sessions.forEach(s=>{
+      const checked=!!state[s.id];
+      const card=document.createElement('div');
+      card.className='session-card'+(checked?' checked':'');
+      card.onclick=()=>toggleSession(s.id,idx);
+      const topicVal=(state[s.id+'_topic']||'').replace(/"/g,'&quot;');
+      const timeTag=s.time?`<span class="sc-time">${s.time}</span>`:'';
+      const tagHtml=`<span class="tag-pill tag-${s.tag}">${s.tag}</span>`;
+      const topicHtml=day.isClassDay
+        ?`<input class="topic-field" type="text" placeholder="เรียนถึงเรื่อง..." value="${topicVal}"
+            style="display:${checked?'block':'none'}"
+            onclick="event.stopPropagation()"
+            oninput="saveTopic('${s.id}',this.value)">`:'';
+      card.innerHTML=`<div class="sc-check"></div>
+        <div class="sc-body">
+          <div class="sc-label">${s.label}${timeTag}</div>
+          <div class="sc-sub">${tagHtml}${s.sub}</div>${topicHtml}</div>`;
+      inner.appendChild(card);
+    });
+    slide.appendChild(inner); track.appendChild(slide);
   });
 }
 
-/* ── SCROLL TO DAY ── */
-function scrollToDay(idx, smooth = true) {
-  const card = document.getElementById('card-' + idx);
-  if (!card) return;
-  card.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant', block: 'start' });
+function goDay(idx, animate=true){
+  activeDay=idx;
+  const vp=document.getElementById('day-viewport');
+  const track=document.getElementById('day-track');
+  if(!animate) track.style.transition='none';
+  track.style.transform=`translateX(-${idx*vp.clientWidth}px)`;
+  if(!animate) requestAnimationFrame(()=>{ track.style.transition=''; });
+  buildStrip(); updateWeekDots();
+  document.querySelectorAll('.ds-pill')[idx]?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
 }
 
-/* ── DETECT ACTIVE DAY ON SCROLL ── */
-function onScroll() {
-  const scroll = document.getElementById('days-scroll');
-  const scrollTop = scroll.scrollTop;
-  const cardH = document.getElementById('left-panel').clientHeight;
-  const newDay = Math.round(scrollTop / cardH);
-  if (newDay !== activeDay && newDay >= 0 && newDay < DAYS.length) {
-    activeDay = newDay;
-    updateIndicator();
-    updateDots();
+function toggleSession(id,dayIdx){
+  state[id]=!state[id]; save();
+  const slide=document.getElementById('slide-'+dayIdx);
+  const day=DAYS[dayIdx];
+  const done=doneCnt(dayIdx),tot=day.sessions.length;
+  slide.querySelector('.sdh-count').textContent=`${done}/${tot}`;
+  slide.querySelector('.sdh-fill').style.width=Math.round(done/tot*100)+'%';
+  slide.querySelectorAll('.session-card').forEach((card,i)=>{
+    const s=day.sessions[i]; const checked=!!state[s.id];
+    card.className='session-card'+(checked?' checked':'');
+    const tf=card.querySelector('.topic-field');
+    if(tf) tf.style.display=checked?'block':'none';
+  });
+  buildStrip(); updateWeekDots();
+}
+
+function saveTopic(id,val){ state[id+'_topic']=val; save(); }
+
+function updateWeekDots(){
+  let cnt=0;
+  DAYS.forEach((day,idx)=>{
+    const dot=document.getElementById('wp-'+idx); if(!dot)return;
+    let cls='wp-dot'+(day.isClassDay?' cls':'');
+    if(isDone(idx)){cls+=' done';cnt++;}
+    else if(idx===activeDay) cls+=' cur';
+    dot.className=cls;
+  });
+  document.getElementById('wp-label').textContent=cnt+'/7';
+}
+
+// swipe
+let startX=0;
+document.getElementById('day-viewport').addEventListener('touchstart',e=>{startX=e.touches[0].clientX;},{passive:true});
+document.getElementById('day-viewport').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-startX;
+  if(Math.abs(dx)>45) goDay(Math.max(0,Math.min(DAYS.length-1,activeDay+(dx<0?1:-1))));
+},{passive:true});
+
+/* ════════════════════ STATS ════════════════════ */
+function renderStats(){
+  const el=document.getElementById('stats-scroll');
+  el.innerHTML='';
+
+  // ── Streak ──
+  const streak = calcStreak();
+  const totalDone = Object.keys(history).length;
+  const totalSessions = Object.values(history).reduce((a,d)=>a+Object.keys(d.sessions||{}).length,0);
+  const streakCard = document.createElement('div');
+  streakCard.className='stat-card';
+  streakCard.innerHTML=`<div class="stat-card-title">🔥 Streak & ภาพรวม</div>
+    <div class="streak-row">
+      <div class="streak-box"><div class="streak-num fire">${streak.current}</div><div class="streak-lbl">วันติดต่อกัน</div></div>
+      <div class="streak-box"><div class="streak-num blue">${streak.best}</div><div class="streak-lbl">สูงสุด</div></div>
+      <div class="streak-box"><div class="streak-num green">${totalSessions}</div><div class="streak-lbl">sessions รวม</div></div>
+    </div>`;
+  el.appendChild(streakCard);
+
+  // ── Heatmap ──
+  const heatCard = document.createElement('div');
+  heatCard.className='stat-card';
+  heatCard.innerHTML=`<div class="stat-card-title">📅 Activity (12 สัปดาห์)</div><div class="heatmap" id="heatmap"></div>`;
+  el.appendChild(heatCard);
+  buildHeatmap(document.getElementById('heatmap'));
+
+  // ── Subject bars ──
+  const subjCard = document.createElement('div');
+  subjCard.className='stat-card';
+  const subjData = calcSubjectStats();
+  const maxVal = Math.max(...Object.values(subjData),1);
+  const colors = {math:'var(--blue)',elec:'var(--purple)',dig:'var(--green)',phys:'var(--amber)',mech:'var(--red)'};
+  const rows = Object.entries(subjData).map(([tag,cnt])=>
+    `<div class="sbr">
+      <div class="sbr-name tag-pill tag-${tag}">${tag}</div>
+      <div class="sbr-track"><div class="sbr-fill" style="width:${Math.round(cnt/maxVal*100)}%;background:${colors[tag]||'var(--blue)'}"></div></div>
+      <div class="sbr-cnt">${cnt}</div>
+    </div>`).join('');
+  subjCard.innerHTML=`<div class="stat-card-title">📚 วิชาที่ทำได้มากสุด</div><div class="subj-bar-row">${rows||'<div class="empty-stats">ยังไม่มีข้อมูล</div>'}</div>`;
+  el.appendChild(subjCard);
+
+  // ── Topic history ──
+  const topicCard = document.createElement('div');
+  topicCard.className='stat-card';
+  const topics = buildTopicHistory();
+  const topicRows = topics.length
+    ? topics.map(t=>`<div class="topic-item">
+        <div class="topic-date">${t.date} · ${t.day}</div>
+        <div class="topic-text">${t.topic}</div>
+        <div class="topic-subj"><span class="tag-pill tag-${t.tag}">${t.tag}</span><span style="font-size:11px;color:var(--muted2)">${t.label}</span></div>
+      </div>`).join('')
+    : '<div class="empty-stats">ยังไม่มี topic บันทึก</div>';
+  topicCard.innerHTML=`<div class="stat-card-title">📝 Topic ที่เรียนล่าสุด</div><div class="topic-list">${topicRows}</div>`;
+  el.appendChild(topicCard);
+}
+
+function calcStreak(){
+  const keys=Object.keys(history).filter(k=>Object.keys(history[k].sessions||{}).length>0).sort();
+  if(!keys.length)return{current:0,best:0};
+  let cur=1,best=1,prev=keys[keys.length-1];
+  for(let i=keys.length-2;i>=0;i--){
+    const d1=new Date(prev),d2=new Date(keys[i]);
+    const diff=(d1-d2)/(1000*86400);
+    if(diff===1){cur++;best=Math.max(best,cur);}
+    else break;
+    prev=keys[i];
+  }
+  // check if today is in streak
+  const today=todayKey();
+  const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if(prev!==today&&prev!==yesterday) cur=0;
+  return{current:cur,best:Math.max(best,cur)};
+}
+
+function buildHeatmap(el){
+  // build 12 weeks grid (Mon-Sun columns)
+  const today=new Date(); today.setHours(0,0,0,0);
+  const days=84; // 12 weeks
+  const start=new Date(today); start.setDate(today.getDate()-days+1);
+  // find Monday of start week
+  const dow=start.getDay(); const adj=(dow===0?6:dow-1);
+  start.setDate(start.getDate()-adj);
+  const weeks=[]; let week=[];
+  let d=new Date(start);
+  while(d<=today||week.length%7!==0){
+    week.push(new Date(d));
+    if(week.length===7){weeks.push(week);week=[];}
+    d.setDate(d.getDate()+1);
+    if(weeks.length>=13)break;
+  }
+  const labels=['จ','อ','พ','พฤ','ศ','ส','อา'];
+  // render as rows (days of week) x cols (weeks)
+  for(let row=0;row<7;row++){
+    const rowEl=document.createElement('div'); rowEl.className='hm-row';
+    const lbl=document.createElement('div'); lbl.className='hm-lbl'; lbl.textContent=labels[row];
+    rowEl.appendChild(lbl);
+    weeks.forEach(wk=>{
+      const cell=document.createElement('div'); cell.className='hm-cell';
+      if(row<wk.length){
+        const dd=wk[row]; const key=dd.toISOString().slice(0,10);
+        const cnt=Object.keys(history[key]?.sessions||{}).length;
+        if(cnt>=5)cell.classList.add('l4');
+        else if(cnt>=3)cell.classList.add('l3');
+        else if(cnt>=1)cell.classList.add('l2');
+        else if(dd<=today)cell.classList.add('l1');
+        if(key===todayKey())cell.classList.add('today-border');
+      }
+      rowEl.appendChild(cell);
+    });
+    el.appendChild(rowEl);
   }
 }
 
-/* ── TOGGLE SESSION ── */
-function toggleSession(id, dayIdx) {
-  state[id] = !state[id];
-  save();
-  // rebuild just the card
-  const card = document.getElementById('card-' + dayIdx);
-  const cardH = card.style.height;
-  const day = DAYS[dayIdx];
-  const done = doneCnt(dayIdx);
-  const total = day.sessions.length;
-  const pct = Math.round(done / total * 100);
-  // update header counts
-  card.querySelector('.day-count').textContent = `${done}/${total}`;
-  card.querySelector('.prog-fill').style.width = pct + '%';
-  // update session item
-  const items = card.querySelectorAll('.session-item');
-  day.sessions.forEach((s, i) => {
-    const checked = !!state[s.id];
-    items[i].className = 'session-item' + (checked ? ' checked' : '');
-    const topicInput = items[i].querySelector('.topic-input');
-    if (topicInput) topicInput.style.display = checked ? 'block' : 'none';
+function calcSubjectStats(){
+  const counts={math:0,elec:0,dig:0,phys:0,mech:0};
+  Object.values(history).forEach(day=>{
+    Object.keys(day.sessions||{}).forEach(sid=>{
+      DAYS.forEach(d=>d.sessions.forEach(s=>{
+        if(s.id===sid&&counts[s.tag]!==undefined)counts[s.tag]++;
+      }));
+    });
   });
-  updateIndicator();
-  updateDots();
+  return Object.fromEntries(Object.entries(counts).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]));
 }
 
-function saveTopic(id, val) { state[id + '_topic'] = val; save(); }
-
-/* ── DOTS (topbar) ── */
-function updateDots() {
-  let cnt = 0;
-  DAYS.forEach((day, idx) => {
-    const dot = document.getElementById('dot-' + idx);
-    if (!dot) return;
-    let cls = 'wdot' + (day.isClassDay ? ' classday' : '');
-    if (isDone(idx)) { cls += ' done'; cnt++; }
-    else if (idx === activeDay) cls += ' active';
-    dot.className = cls;
+function buildTopicHistory(){
+  const result=[];
+  Object.entries(history).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14).forEach(([date,day])=>{
+    Object.entries(day.topics||{}).forEach(([sid,topic])=>{
+      if(!topic)return;
+      let found=null;
+      DAYS.forEach((d,di)=>d.sessions.forEach(s=>{if(s.id===sid)found={...s,dayName:d.short};}));
+      if(found)result.push({date,day:found.dayName,label:found.label,tag:found.tag,topic});
+    });
   });
-  document.getElementById('week-label').textContent = cnt + '/7';
+  return result.slice(0,20);
 }
 
-/* ── SYSTEM PROMPT ── */
-function getSystemPrompt() {
-  const all = [];
-  DAYS.forEach(day => day.sessions.forEach(s => {
-    if (state[s.id]) {
-      const t = state[s.id + '_topic'] ? ` (เรียนถึง: ${state[s.id + '_topic']})` : '';
+/* ════════════════════ SETTINGS MODAL ════════════════════ */
+function openSettingsModal(){
+  document.getElementById('or-key-input').value=getOrKey();
+  document.getElementById('gh-token-input').value=getGhToken();
+  document.getElementById('settings-modal').classList.add('open');
+}
+function saveSettings(){
+  const orKey=document.getElementById('or-key-input').value.trim();
+  const ghToken=document.getElementById('gh-token-input').value.trim();
+  if(orKey) localStorage.setItem('st_orkey',orKey);
+  if(ghToken){ localStorage.setItem('st_ghtoken',ghToken); if(!gistId) syncToGist(); else syncFromGist(); }
+  updateKeyBtn();
+  closeModal('settings-modal');
+}
+function clearAllKeys(){
+  ['st_orkey','st_ghtoken','st_gist_id'].forEach(k=>localStorage.removeItem(k));
+  gistId=''; updateKeyBtn(); closeModal('settings-modal');
+}
+function updateKeyBtn(){
+  const btn=document.getElementById('key-btn');
+  const hasOr=!!getOrKey(), hasGh=!!getGhToken();
+  if(hasOr&&hasGh) btn.textContent='⚙️ OR+Gist ✓';
+  else if(hasOr) btn.textContent='⚙️ OR key ✓';
+  else btn.textContent='⚙️ ตั้งค่า';
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function handleBackdrop(e,id){ if(e.target.id===id)closeModal(id); }
+
+/* ════════════════════ CHAT ════════════════════ */
+function getSys(){
+  const all=[];
+  DAYS.forEach(day=>day.sessions.forEach(s=>{
+    if(state[s.id]){
+      const t=state[s.id+'_topic']?` (เรียนถึง: ${state[s.id+'_topic']})`:'';
       all.push(`${day.short}: ${s.label}${t}`);
     }
   }));
-  const today = DAYS[activeDay];
-  const todayDone = today.sessions.filter(s => state[s.id]).map(s => {
-    const t = state[s.id + '_topic'] ? ` — ${state[s.id + '_topic']}` : '';
-    return s.label + t;
+  const today=DAYS[activeDay];
+  const done=today.sessions.filter(s=>state[s.id]).map(s=>{
+    const t=state[s.id+'_topic']?` — ${state[s.id+'_topic']}`:''; return s.label+t;
   });
-  const todayLeft = today.sessions.filter(s => !state[s.id]).map(s => s.label);
-  return `คุณเป็นผู้ช่วยติวหนังสือสำหรับนักศึกษาวิศวกรรม
+  const left=today.sessions.filter(s=>!state[s.id]).map(s=>s.label);
+  return `คุณเป็นผู้ช่วยติวหนังสือนักศึกษาวิศวกรรม
 วิชา: MATH0101 แคลคูลัส (กังวลมากที่สุด), EECC0232 ไฟฟ้า, MIIC1120 ดิจิทัล, PHYS0110 ฟิสิกส์ 1, PHYS0190 ปฏิบัติฟิสิกส์, MECH0110 กลศาสตร์, ENCC0007 ปฏิบัติการ (สอบ AFTERFINAL)
-วันนี้: ${today.name}${today.isClassDay ? ' (วันเรียนจริง)' : ' (วันทบทวน)'}
-เสร็จแล้ววันนี้: ${todayDone.join('; ') || 'ยังไม่มี'}
-ค้างอยู่: ${todayLeft.join(', ') || 'ครบแล้ว!'}
-สัปดาห์นี้: ${all.join('; ') || 'ยังไม่มี'}
+วันนี้: ${today.name}${today.isClassDay?' (วันเรียนจริง)':' (วันทบทวน)'}
+เสร็จแล้ว: ${done.join('; ')||'ยังไม่มี'}
+ค้างอยู่: ${left.join(', ')||'ครบแล้ว!'}
+สัปดาห์นี้: ${all.join('; ')||'ยังไม่มี'}
 ตอบภาษาไทย กระชับ เป็นกันเอง ถ้าสอนคณิต/ฟิสิกส์ให้ใช้ตัวอย่างและขั้นตอนชัดเจน`;
 }
 
-/* ── CHAT ── */
-function renderMessages() {
-  const box = document.getElementById('messages');
-  box.querySelectorAll('.msg').forEach(e => e.remove());
-  const empty = document.getElementById('empty-state');
-  if (!messages.length) { empty.style.display = 'flex'; return; }
-  empty.style.display = 'none';
-  messages.forEach(m => {
-    const d = document.createElement('div');
-    d.className = 'msg ' + (m.role === 'user' ? 'user' : 'ai');
-    d.innerHTML = `<div class="mavatar">${m.role === 'user' ? 'คุณ' : 'AI'}</div>
+function renderMsgs(){
+  const box=document.getElementById('messages');
+  box.querySelectorAll('.msg').forEach(e=>e.remove());
+  const empty=document.getElementById('empty-chat');
+  if(!msgs.length){empty.style.display='flex';return;}
+  empty.style.display='none';
+  msgs.forEach(m=>{
+    const d=document.createElement('div');
+    d.className='msg '+(m.role==='user'?'user':'ai');
+    d.innerHTML=`<div class="mavatar">${m.role==='user'?'คุณ':'AI'}</div>
       <div class="mbubble">${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
     box.appendChild(d);
   });
-  box.scrollTop = box.scrollHeight;
+  box.scrollTop=box.scrollHeight;
 }
 
-async function sendMessage(text) {
-  const inp = document.getElementById('user-input');
-  const msg = text || inp.value.trim();
-  if (!msg) return;
-
-  const apiKey = getKey();
-  if (!apiKey) {
-    openKeyModal();
-    return;
-  }
-
-  if (!text) { inp.value = ''; inp.style.height = 'auto'; }
-  messages.push({ role: 'user', content: msg });
-  renderMessages();
-  const typing = document.createElement('div');
-  typing.className = 'msg ai';
-  typing.innerHTML = `<div class="mavatar">AI</div><div class="mbubble"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
+async function sendMessage(text){
+  const inp=document.getElementById('user-input');
+  const msg=text||inp.value.trim(); if(!msg)return;
+  const key=getOrKey(); if(!key){openSettingsModal();return;}
+  if(!text){inp.value='';inp.style.height='auto';}
+  msgs.push({role:'user',content:msg}); renderMsgs();
+  const typing=document.createElement('div'); typing.className='msg ai';
+  typing.innerHTML=`<div class="mavatar">AI</div><div class="mbubble"><span class="tydot"></span><span class="tydot"></span><span class="tydot"></span></div>`;
   document.getElementById('messages').appendChild(typing);
-  document.getElementById('messages').scrollTop = 99999;
-  document.getElementById('send-btn').disabled = true;
-  try {
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://study-tracker.local',
-        'X-Title': 'Study Tracker'
-      },
-      body: JSON.stringify({
-        model: 'openrouter/auto',
-        messages: [
-          { role: 'system', content: getSystemPrompt() },
-          ...messages.slice(-12)
-        ],
-        max_tokens: 1000
-      })
+  document.getElementById('messages').scrollTop=99999;
+  document.getElementById('send-btn').disabled=true;
+  try{
+    const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key,'HTTP-Referer':'https://study-tracker.local','X-Title':'Study Tracker'},
+      body:JSON.stringify({model:'openrouter/auto',messages:[{role:'system',content:getSys()},...msgs.slice(-12)],max_tokens:1000})
     });
-    const data = await r.json();
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-    const reply = data.choices?.[0]?.message?.content || 'เกิดข้อผิดพลาด';
+    const data=await r.json();
+    if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
+    const reply=data.choices?.[0]?.message?.content||'เกิดข้อผิดพลาด';
+    typing.remove(); msgs.push({role:'assistant',content:reply}); saveMsgs(); renderMsgs();
+  }catch(e){
     typing.remove();
-    messages.push({ role: 'assistant', content: reply });
-    saveMsgs(); renderMessages();
-  } catch (e) {
-    typing.remove();
-    const errMsg = e.message?.includes('invalid') || e.message?.includes('auth')
-      ? '❌ API key ไม่ถูกต้อง กรุณากดปุ่ม 🔑 เพื่อใส่ key ใหม่'
-      : '❌ เชื่อมต่อไม่ได้: ' + (e.message || 'unknown error');
-    messages.push({ role: 'assistant', content: errMsg });
-    renderMessages();
+    msgs.push({role:'assistant',content:'❌ '+e.message}); renderMsgs();
   }
-  document.getElementById('send-btn').disabled = false;
+  document.getElementById('send-btn').disabled=false;
 }
-const quickSend = t => sendMessage(t);
-function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
-function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
+const quickSend=t=>sendMessage(t);
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
 
-/* ── INIT ── */
-buildCards();
-updateDots();
-renderMessages();
-
-// after render, scroll to today without animation
-requestAnimationFrame(() => {
-  scrollToDay(activeDay, false);
-  // attach scroll listener
-  const scrollEl = document.getElementById('days-scroll');
-  scrollEl.addEventListener('scroll', onScroll, { passive: true });
-});
-
-// rebuild on resize
-window.addEventListener('resize', () => {
-  const scrollEl = document.getElementById('days-scroll');
-  scrollEl.removeEventListener('scroll', onScroll);
-  buildCards();
-  requestAnimationFrame(() => {
-    scrollToDay(activeDay, false);
-    scrollEl.addEventListener('scroll', onScroll, { passive: true });
-  });
-});
+/* ════════════════════ INIT ════════════════════ */
+function init(){
+  buildStrip(); buildSlides(); goDay(activeDay,false);
+  updateWeekDots(); updateKeyBtn(); renderMsgs();
+  if(getGhToken()) syncFromGist();
+  window.addEventListener('resize',()=>{ buildSlides(); goDay(activeDay,false); });
+}
+init();
 </script>
-
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log('SW registered'))
-      .catch(e => console.log('SW error:', e));
-  });
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
 }
 </script>
-
 </body>
 </html>
