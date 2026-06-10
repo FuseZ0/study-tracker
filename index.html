@@ -553,45 +553,90 @@ body.rotated{
 
 <script>
 /* ════════════════════ DATA ════════════════════ */
+/* ── MATH0101 weekly topics (Week 1–15) ── */
+const MATH_WEEKS = [
+  { w:1,  topic:'Algebra — Numbers, Expressions, Functions & Graphs (Linear, Polynomial)' },
+  { w:2,  topic:'Factor & Expansion, Trigonometry (Pythagoras, Basic & Inverse trig)', test:null },
+  { w:3,  topic:'Law of sines/cosines, Trig identities & equations, Trig functions & waveform', test:'Test01 (6pt) — Expressions, Functions' },
+  { w:4,  topic:'Operation of Functions, Composite/Inverse, Exponential & Log, Hyperbolic functions' },
+  { w:5,  topic:'Differentiation — Limits & Continuity, Derivatives, Differentiation rules', test:'Test02 (7pt) — Trigonometry' },
+  { w:6,  topic:'Techniques for Differentiation, Implicit differentiation, Higher derivatives', test:'Test03 (5pt) — Operation of Function, Transcendental Function' },
+  { w:7,  topic:'Applications of Derivatives', test:'Midterm' },
+  { w:8,  topic:'Integrations — Antiderivatives, Definite integral, Fundamental theorem of calculus' },
+  { w:9,  topic:'Indefinite integrals, Substitution rule, Integration by parts', test:'Test04 (7pt) — Derivatives, Differentiation rules, Higher derivatives' },
+  { w:10, topic:'Integration by partial fractions', test:'Test05 (7pt) — Implicit diff, Applications of derivatives' },
+  { w:11, topic:'Applications of integration: Area, Arc length, Volume, Probability, Centroid/Moment', test:'Test06 (8pt) — Definite/Indefinite integrals, Substitution, IBP' },
+  { w:12, topic:'Series — Infinite sequences, Summation notation, Mathematical induction' },
+  { w:13, topic:'Alternative series & Absolute convergence', test:'Test07 (8pt) — Partial fractions, Applications of integration' },
+  { w:14, topic:'Power series, Binomial series, Maclaurin & Taylor series', test:'Test08 (7pt) — Series' },
+  { w:15, topic:'Complex Numbers', test:'Final Exam' },
+];
+
+/* ── PHYS0110 (Physics I) weekly topics ── */
+const PHYS_WEEKS = [
+  { w:1,  topic:'Measurement, Unit, Vector Algebra' },
+  { w:2,  topic:'One Dimension Motion' },
+  { w:3,  topic:'Force, Friction, Newton\'s Law' },
+  { w:4,  topic:'Motion and Motion in 2D' },
+  { w:5,  topic:'Circular Motion, Big G, Energy' },
+  { w:6,  topic:'Power, Momentum' },
+  { w:7,  topic:'Center of Mass, Oscillation' },
+  { w:8,  topic:'Wave, Doppler, Resonance' },
+  { w:9,  topic:'Rotation Motion' },
+  { w:10, topic:'Fluid, Pressure, Buoy Force' },
+  { w:11, topic:'Law of Ideal Gas, Kinetic Theory' },
+  { w:12, topic:'Thermodynamics' },
+];
+
+/* helper: get current study week (MATH starts sat 13 Jun 2025) */
+function getStudyWeek(){
+  const start = new Date('2025-06-13');
+  const now = new Date();
+  const diff = Math.floor((now - start) / (7*24*60*60*1000));
+  return Math.max(1, Math.min(15, diff + 1));
+}
+function getMathWeek(){ const w=getStudyWeek(); return MATH_WEEKS.find(x=>x.w===w)||MATH_WEEKS[0]; }
+function getPhysWeek(){ const w=getStudyWeek(); const pw=Math.min(12,w); return PHYS_WEEKS.find(x=>x.w===pw)||PHYS_WEEKS[0]; }
+
 const DAYS = [
   { name:'วันจันทร์', short:'จันทร์', isClassDay:false, sessions:[
-    { id:'mon-1', label:'MATH0101 — ทบทวนโจทย์เสาร์', sub:'derivative / limit', tag:'math' },
-    { id:'mon-2', label:'EECC0232 — ทบทวน lecture เสาร์', sub:'สรุป notes + แบบฝึกหัดวงจร', tag:'elec' },
-    { id:'mon-3', label:'MATH0101 — สรุปสูตร + flashcard', sub:'เขียนสูตรที่จำไม่ได้', tag:'math' },
+    { id:'mon-1', label:'MATH0101 — ทบทวน Lecture เสาร์', get sub(){ return getMathWeek().topic; }, tag:'math' },
+    { id:'mon-2', label:'EECC0232 — ทบทวน Lecture เสาร์', sub:'สรุป notes + แบบฝึกหัดวงจร', tag:'elec' },
+    { id:'mon-3', label:'PHYS0110 — อ่านล่วงหน้าบทต่อไป', get sub(){ return getPhysWeek().topic; }, tag:'phys' },
   ]},
   { name:'วันอังคาร', short:'อังคาร', isClassDay:false, sessions:[
-    { id:'tue-1', label:'MIIC1120 — logic gate + truth table', sub:'combinational circuit', tag:'dig' },
-    { id:'tue-2', label:'MECH0110 — free body diagram', sub:'statics / equilibrium', tag:'mech' },
-    { id:'tue-3', label:'MATH0101 — โจทย์เพิ่มเติม', sub:'โจทย์ที่ยังทำผิดซ้ำ / past exam', tag:'math' },
+    { id:'tue-1', label:'MIIC1120 — Logic & Digital', sub:'logic gate / truth table / combinational circuit', tag:'dig' },
+    { id:'tue-2', label:'MECH0110 — Free Body Diagram', sub:'statics / equilibrium', tag:'mech' },
+    { id:'tue-3', label:'MATH0101 — โจทย์เพิ่มเติม', get sub(){ return getMathWeek().topic+' • ทำโจทย์'; }, tag:'math' },
   ]},
   { name:'วันพุธ', short:'พุธ', isClassDay:false, sessions:[
-    { id:'wed-1', label:'PHYS0110 — problem set mechanics', sub:"Newton's laws / energy / momentum", tag:'phys' },
-    { id:'wed-2', label:'ENCC0007 — เตรียม lab report', sub:'อ่านขั้นตอนทดลอง / pre-lab', tag:'phys' },
-    { id:'wed-3', label:'MATH0101 — Integration เบื้องต้น', sub:'อ่านล่วงหน้าก่อนเสาร์', tag:'math' },
+    { id:'wed-1', label:'PHYS0110 — Problem Set', get sub(){ return getPhysWeek().topic; }, tag:'phys' },
+    { id:'wed-2', label:'ENCC0007 — เตรียม Lab Report', sub:'อ่านขั้นตอนทดลอง / pre-lab', tag:'phys' },
+    { id:'wed-3', label:'MATH0101 — อ่านล่วงหน้า / ทำใบงาน', get sub(){ return getMathWeek().topic; }, tag:'math' },
   ]},
   { name:'วันพฤหัสบดี', short:'พฤหัส', isClassDay:false, sessions:[
-    { id:'thu-1', label:'EECC0232 — เตรียมเนื้อหาคาบอาทิตย์', sub:'MIIX304 + MIIX303 สองคาบต่อเนื่อง', tag:'elec' },
-    { id:'thu-2', label:'PHYS0190 — ทบทวน lab ที่ผ่านมา', sub:'เตรียมคาบอาทิตย์ค่ำ', tag:'phys' },
-    { id:'thu-3', label:'MATH0101 — โจทย์ชุดยาก', sub:'past exam / โจทย์ซับซ้อน', tag:'math' },
+    { id:'thu-1', label:'EECC0232 — เตรียมคาบอาทิตย์', sub:'MIIX304 + MIIX303 สองคาบต่อเนื่อง', tag:'elec' },
+    { id:'thu-2', label:'MATH0101 — โจทย์ยาก / Past Exam', get sub(){ return getMathWeek().topic+' • past exam'; }, tag:'math' },
+    { id:'thu-3', label:'PHYS0190 — ทบทวน Lab', sub:'เตรียมคาบอาทิตย์ค่ำ', tag:'phys' },
   ]},
   { name:'วันศุกร์', short:'ศุกร์', isClassDay:false, sessions:[
-    { id:'fri-1', label:'MATH0101 — weekly review', sub:'สรุปจุดที่ยังสะดุดทั้งสัปดาห์', tag:'math' },
-    { id:'fri-2', label:'MIIC1120 — สรุป mind map ดิจิทัล', sub:'flashcard / สรุป chapter', tag:'dig' },
-    { id:'fri-3', label:'เตรียมของสำหรับเสาร์', sub:'assignment / lab kit / handout', tag:'mech' },
+    { id:'fri-1', label:'MATH0101 — Weekly Review', get sub(){ const mw=getMathWeek(); return `Week ${mw.w}: ${mw.topic}`; }, tag:'math' },
+    { id:'fri-2', label:'MIIC1120 — สรุป Mind Map', sub:'flashcard / สรุป chapter', tag:'dig' },
+    { id:'fri-3', label:'เตรียมของสำหรับเสาร์', sub:'assignment ครบ / lab kit / handout', tag:'mech' },
   ]},
   { name:'วันเสาร์ 🎓', short:'เสาร์', isClassDay:true, sessions:[
-    { id:'sat-1', label:'EECC0232 — คาบ 1', sub:'D502 • ไฟฟ้า Sec C2', tag:'elec', time:'8:00' },
-    { id:'sat-2', label:'MATH0101 — คาบ 2', sub:'D504 • แคลคูลัส Sec F2', tag:'math', time:'10:30' },
-    { id:'sat-3', label:'PHYS0110 — คาบ 3', sub:'F504 • ฟิสิกส์ 1 Sec D2', tag:'phys', time:'13:30' },
-    { id:'sat-4', label:'MIIC1120 — คาบ 4', sub:'MII207A • ดิจิทัล Sec B', tag:'dig', time:'16:00' },
-    { id:'sat-5', label:'MECH0110 — คาบ 5', sub:'F502 • กลศาสตร์ Sec B', tag:'mech', time:'18:30' },
+    { id:'sat-1', label:'EECC0232 — Lecture', sub:'D502 • ไฟฟ้า Sec C2', tag:'elec', time:'8:00' },
+    { id:'sat-2', label:'MATH0101 — Lecture', get sub(){ return `D504 • Sec F2 | ${getMathWeek().topic}`; }, tag:'math', time:'10:30' },
+    { id:'sat-3', label:'PHYS0110 — Lecture', get sub(){ return `F504 • Sec D2 | ${getPhysWeek().topic}`; }, tag:'phys', time:'13:30' },
+    { id:'sat-4', label:'MIIC1120 — Lecture', sub:'MII207A • ดิจิทัล Sec B', tag:'dig', time:'16:00' },
+    { id:'sat-5', label:'MECH0110 — Lecture', sub:'F502 • กลศาสตร์ Sec B', tag:'mech', time:'18:30' },
   ]},
   { name:'วันอาทิตย์ 🎓', short:'อาทิตย์', isClassDay:true, sessions:[
-    { id:'sun-1', label:'MATH0101 — คาบ 1', sub:'D602 • แคลคูลัส Sec F2', tag:'math', time:'8:00' },
-    { id:'sun-2', label:'MIIC1120 — คาบ 3', sub:'MIIX302 • ดิจิทัล Sec B', tag:'dig', time:'13:30' },
-    { id:'sun-3', label:'EECC0232 — คาบ 4 (กลุ่ม 1)', sub:'MIIX304 • ไฟฟ้า Sec C2', tag:'elec', time:'16:00' },
-    { id:'sun-4', label:'EECC0232 — คาบ 4 (กลุ่ม 2)', sub:'MIIX303 • ไฟฟ้า Sec C2', tag:'elec', time:'16:00' },
-    { id:'sun-5', label:'PHYS0190 — คาบ 5', sub:'K202 • ปฏิบัติฟิสิกส์ Sec D2', tag:'phys', time:'18:30' },
+    { id:'sun-1', label:'MATH0101 — Tutorial (E1/E2/F1/F2)', get sub(){ const mw=getMathWeek(); return mw.test?`📝 ${mw.test} | สอบ 10:00–10:30น • ${mw.topic}`:`ทำใบงาน • ${mw.topic}`; }, tag:'math', time:'10:00' },
+    { id:'sun-2', label:'MIIC1120 — Tutorial', sub:'MIIX302 • ดิจิทัล Sec B', tag:'dig', time:'13:30' },
+    { id:'sun-3', label:'EECC0232 — Tutorial (กลุ่ม 1)', sub:'MIIX304 • ไฟฟ้า Sec C2', tag:'elec', time:'16:00' },
+    { id:'sun-4', label:'EECC0232 — Tutorial (กลุ่ม 2)', sub:'MIIX303 • ไฟฟ้า Sec C2', tag:'elec', time:'16:00' },
+    { id:'sun-5', label:'PHYS0190 — Lab', sub:'K202 • ปฏิบัติฟิสิกส์ Sec D2', tag:'phys', time:'18:30' },
   ]},
 ];
 
@@ -985,8 +1030,18 @@ function getSys(){
     const t=state[s.id+'_topic']?` — ${state[s.id+'_topic']}`:''; return s.label+t;
   });
   const left=today.sessions.filter(s=>!state[s.id]).map(s=>s.label);
+  const mw=getMathWeek();
+  const pw=getPhysWeek();
+  const nextTest=mw.test?`📝 MATH สัปดาห์นี้มีสอบย่อย: ${mw.test}`:'';
   return `คุณเป็นผู้ช่วยติวหนังสือนักศึกษาวิศวกรรม
-วิชา: MATH0101 แคลคูลัส (กังวลมากที่สุด), EECC0232 ไฟฟ้า, MIIC1120 ดิจิทัล, PHYS0110 ฟิสิกส์ 1, PHYS0190 ปฏิบัติฟิสิกส์, MECH0110 กลศาสตร์, ENCC0007 ปฏิบัติการ (สอบ AFTERFINAL)
+วิชา: MATH0101 แคลคูลัส (กังวลมากที่สุด), EECC0232 ไฟฟ้า, MIIC1120 ดิจิทัล, PHYS0110 ฟิสิกส์ 1, PHYS0190 ปฏิบัติฟิสิกส์, MECH0110 กลศาสตร์, ENCC0007 ปฏิบัติการ
+
+MATH0101 สัปดาห์ที่ ${mw.w}/15: ${mw.topic}
+${nextTest}
+PHYS0110 สัปดาห์ที่ ${pw.w}/12: ${pw.topic}
+
+คะแนน MATH: สอบย่อย 8 ครั้ง รวม 55 คะแนน | Tutorial 15 ครั้ง + O-Week รวมไม่เกิน 45 คะแนน
+ข้อกำหนด Tutorial: ต้องมีตรายาง, ส่งเป็น PDF เดียว, พิมพ์รหัสใน private comment, ส่งทัน
 วันนี้: ${today.name}${today.isClassDay?' (วันเรียนจริง)':' (วันทบทวน)'}
 เสร็จแล้ว: ${done.join('; ')||'ยังไม่มี'}
 ค้างอยู่: ${left.join(', ')||'ครบแล้ว!'}
