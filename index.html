@@ -515,7 +515,7 @@ body.rotated{
   </div>
   <div class="model-row" id="model-row">
     <button class="mchip active" id="m-auto"    onclick="setModel('openrouter/auto','m-auto')">⚡ Auto</button>
-    <button class="mchip"        id="m-gemini"  onclick="setModel('google/gemini-2.0-flash-exp','m-gemini')">🟣 Gemini 2.0</button>
+    <button class="mchip"        id="m-gemini"  onclick="setModel('google/gemini-2.0-flash-exp:free','m-gemini')">🟣 Gemini 2.0</button>
     <button class="mchip"        id="m-deepseek" onclick="setModel('deepseek/deepseek-r1','m-deepseek')">🔵 DeepSeek R1</button>
   </div>
   <div class="quick-row">
@@ -1115,7 +1115,7 @@ function setModel(model, btnId){
 function initModelChip(){
   const map = {
     'openrouter/auto':'m-auto',
-    'google/gemini-2.0-flash-exp':'m-gemini',
+    'google/gemini-2.0-flash-exp:free':'m-gemini',
     'deepseek/deepseek-r1':'m-deepseek',
   };
   const btnId = map[curModel] || 'm-auto';
@@ -1147,7 +1147,7 @@ async function sendMessage(text){
     const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key,'HTTP-Referer':'https://study-tracker.local','X-Title':'Study Tracker'},
-      body:JSON.stringify({model: webSearch ? curModel+':online' : curModel, messages:[{role:'system',content:getSys()},...msgs.slice(-12)],max_tokens:1000})
+      body:JSON.stringify({model: webSearch ? curModel.replace(':free','')+':online' : curModel, messages:[{role:'system',content:getSys()},...msgs.slice(-12)],max_tokens:1000})
     });
     const data=await r.json();
     if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
