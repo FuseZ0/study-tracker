@@ -325,6 +325,36 @@ body.rotated{
   display:flex;gap:8px;align-items:flex-end;
   background:var(--s1);border-top:1px solid var(--b1);flex-shrink:0;
 }
+.web-btn{
+  flex-shrink:0;width:38px;height:38px;border-radius:12px;border:1.5px solid var(--b2);
+  background:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .18s,border-color .18s;
+  -webkit-tap-highlight-color:transparent;
+}
+.web-btn.on{background:var(--blue-d);border-color:var(--blue);}
+
+/* model selector */
+.model-row{
+  display:flex;gap:6px;padding:6px 12px 2px;
+  overflow-x:auto;flex-shrink:0;
+  scrollbar-width:none;
+}
+.model-row::-webkit-scrollbar{display:none;}
+.mchip{
+  flex-shrink:0;
+  padding:4px 12px;border-radius:20px;
+  font-size:11px;font-weight:500;font-family:var(--font);
+  border:1.5px solid var(--b2);background:none;
+  color:var(--muted);cursor:pointer;
+  transition:all .18s;
+  -webkit-tap-highlight-color:transparent;
+  white-space:nowrap;
+}
+.mchip.active{
+  background:var(--blue-d);
+  border-color:var(--blue);
+  color:var(--blue);
+}
 .input-box{flex:1;background:var(--s3);border:1.5px solid var(--b2);border-radius:14px;padding:10px 13px;display:flex;align-items:flex-end;gap:8px;transition:border-color .18s;}
 .input-box:focus-within{border-color:var(--blue);}
 #user-input{flex:1;background:none;border:none;outline:none;color:var(--txt);font-family:var(--font);font-size:16px;/* 16px prevents iOS zoom */resize:none;max-height:110px;line-height:1.5;}
@@ -483,6 +513,11 @@ body.rotated{
       <p>ถามเรื่องที่เรียนได้เลยครับ<br><span style="font-size:11px;opacity:.6">Claude รู้ตารางและ session ที่ติ๊กไว้</span></p>
     </div>
   </div>
+  <div class="model-row" id="model-row">
+    <button class="mchip active" id="m-auto"    onclick="setModel('openrouter/auto','m-auto')">⚡ Auto</button>
+    <button class="mchip"        id="m-gemini"  onclick="setModel('google/gemini-2.0-flash-exp','m-gemini')">🟣 Gemini 2.0</button>
+    <button class="mchip"        id="m-deepseek" onclick="setModel('deepseek/deepseek-r1','m-deepseek')">🔵 DeepSeek R1</button>
+  </div>
   <div class="quick-row">
     <button class="qchip" onclick="quickSend('อธิบาย derivative ให้เข้าใจง่ายๆ')">📐 derivative</button>
     <button class="qchip" onclick="quickSend('ทำโจทย์ MATH ไม่ออก ช่วยวิธีคิดหน่อย')">🤔 ติดโจทย์</button>
@@ -491,6 +526,7 @@ body.rotated{
     <button class="qchip" onclick="quickSend('ทบทวน EECC วงจรไฟฟ้าเบื้องต้น')">⚡ EECC</button>
   </div>
   <div class="input-row">
+    <button class="web-btn" id="web-btn" onclick="toggleWeb()" title="ค้นหาอินเตอร์เน็ต">🌐</button>
     <div class="input-box">
       <textarea id="user-input" rows="1" placeholder="ถามเรื่องที่เรียน..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
     </div>
@@ -1066,6 +1102,36 @@ function renderMsgs(){
   box.scrollTop=box.scrollHeight;
 }
 
+let webSearch = false;
+let curModel = localStorage.getItem('st_model') || 'openrouter/auto';
+
+function setModel(model, btnId){
+  curModel = model;
+  localStorage.setItem('st_model', model);
+  document.querySelectorAll('.mchip').forEach(b => b.classList.remove('active'));
+  document.getElementById(btnId).classList.add('active');
+}
+
+function initModelChip(){
+  const map = {
+    'openrouter/auto':'m-auto',
+    'google/gemini-2.0-flash-exp':'m-gemini',
+    'deepseek/deepseek-r1':'m-deepseek',
+  };
+  const btnId = map[curModel] || 'm-auto';
+  document.querySelectorAll('.mchip').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById(btnId);
+  if(el) el.classList.add('active');
+}
+
+function toggleWeb(){
+  webSearch = !webSearch;
+  const btn = document.getElementById('web-btn');
+  btn.classList.toggle('on', webSearch);
+  btn.title = webSearch ? '🌐 ค้นหาเปิดอยู่' : 'ค้นหาอินเตอร์เน็ต';
+  document.getElementById('user-input').placeholder = webSearch ? 'ถามพร้อมค้นเน็ต...' : 'ถามเรื่องที่เรียน...';
+}
+
 async function sendMessage(text){
   const inp=document.getElementById('user-input');
   const msg=text||inp.value.trim(); if(!msg)return;
@@ -1081,7 +1147,7 @@ async function sendMessage(text){
     const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key,'HTTP-Referer':'https://study-tracker.local','X-Title':'Study Tracker'},
-      body:JSON.stringify({model:'openrouter/auto',messages:[{role:'system',content:getSys()},...msgs.slice(-12)],max_tokens:1000})
+      body:JSON.stringify({model: webSearch ? curModel+':online' : curModel, messages:[{role:'system',content:getSys()},...msgs.slice(-12)],max_tokens:1000})
     });
     const data=await r.json();
     if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
@@ -1130,7 +1196,7 @@ function toggleRotate(){
 /* ════════════════════ INIT ════════════════════ */
 function init(){
   buildStrip(); buildSlides(); goDay(activeDay,false);
-  updateWeekDots(); updateKeyBtn(); renderMsgs();
+  updateWeekDots(); updateKeyBtn(); renderMsgs(); initModelChip();
   if(getGhToken()) syncFromGist();
   window.addEventListener('resize',()=>{ buildSlides(); goDay(activeDay,false); });
 
