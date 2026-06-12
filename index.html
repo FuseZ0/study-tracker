@@ -519,11 +519,12 @@ body.rotated{
     <button class="mchip"        id="m-deepseek" onclick="setModel('deepseek/deepseek-r1','m-deepseek')">🔵 DeepSeek R1</button>
   </div>
   <div class="quick-row">
-    <button class="qchip" onclick="quickSend('อธิบาย derivative ให้เข้าใจง่ายๆ')">📐 derivative</button>
-    <button class="qchip" onclick="quickSend('ทำโจทย์ MATH ไม่ออก ช่วยวิธีคิดหน่อย')">🤔 ติดโจทย์</button>
-    <button class="qchip" onclick="quickSend('สรุปเนื้อหาที่เรียนวันนี้')">📝 สรุปวันนี้</button>
-    <button class="qchip" onclick="quickSend('พรุ่งนี้ควรเรียนเรื่องอะไรต่อ')">📅 พรุ่งนี้</button>
-    <button class="qchip" onclick="quickSend('ทบทวน EECC วงจรไฟฟ้าเบื้องต้น')">⚡ EECC</button>
+    <button class="qchip" onclick="quickSend('สรุปเนื้อหาและจุดสำคัญที่ต้องรู้สัปดาห์นี้ทุกวิชา')">📝 สรุปสัปดาห์นี้</button>
+    <button class="qchip" onclick="quickSend('MATH สัปดาห์นี้เรียนเรื่องอะไร ช่วยอธิบายพร้อมตัวอย่างและขั้นตอน')">📐 MATH สัปดาห์นี้</button>
+    <button class="qchip" onclick="quickSend('MIIC สัปดาห์นี้เรียนเรื่องอะไร อธิบายพร้อมตัวอย่างและโจทย์')">💡 MIIC สัปดาห์นี้</button>
+    <button class="qchip" onclick="quickSend('PHYS0190 Lab สัปดาห์นี้คืออะไร ต้องเตรียมอะไรบ้าง และหลักการของการทดลองคืออะไร')">🧪 Lab สัปดาห์นี้</button>
+    <button class="qchip" onclick="quickSend('ติดโจทย์ ช่วยแนะนำวิธีคิดหน่อย')">🤔 ติดโจทย์</button>
+    <button class="qchip" onclick="quickSend('ทบทวน EECC วงจรไฟฟ้าเบื้องต้น Kirchhoff KVL KCL')">⚡ EECC</button>
   </div>
   <div class="input-row">
     <button class="web-btn" id="web-btn" onclick="toggleWeb()" title="ค้นหาอินเตอร์เน็ต">🌐</button>
@@ -625,6 +626,34 @@ const PHYS_WEEKS = [
   { w:12, topic:'Thermodynamics' },
 ];
 
+/* ── MIIC1120 topics (Midterm = บท 1-7) ── */
+const MIIC_TOPICS = [
+  { ch:1, topic:'ระบบเลขฐาน (Number Systems) — Binary, Octal, Hex, แปลงเลขฐาน' },
+  { ch:2, topic:'ลอจิกเกต (Logic Gates) — AND, OR, NOT, NAND, NOR, XOR, XNOR' },
+  { ch:3, topic:'การเขียนวงจร สมการ ตาราง (Boolean Expression, Truth Table, Circuit)' },
+  { ch:4, topic:'บูลีนพีชคณิต (Boolean Algebra) — กฎและทฤษฎีบท, ลดรูป' },
+  { ch:5, topic:'Karnaugh Map (K-map) — 2/3/4 ตัวแปร, SOP/POS, กลุ่ม Implicant' },
+  { ch:6, topic:'Encode/Decode — Encoder, Decoder, Multiplexer, Demultiplexer' },
+  { ch:7, topic:'Arithmetic & Logic Unit — Adder, Subtractor, เลขฐานสอง, Complement' },
+];
+
+/* ── PHYS0190 Lab schedule (13 ครั้ง) ── */
+const PHYS190_LABS = [
+  { n:1,  topic:'กฎระเบียบห้อง Lab + การวิเคราะห์ข้อมูลด้วยกราฟ' },
+  { n:2,  topic:'การใช้เครื่องคำนวณวิทยาศาสตร์' },
+  { n:3,  topic:'Lab 1 — ความเร่งเนื่องจากแรงโน้มถ่วงโลก (g)' },
+  { n:4,  topic:'Lab 2 — กฎข้อที่สองของนิวตัน (F=ma)' },
+  { n:5,  topic:'Lab 3 — แรงสู่ศูนย์กลาง (Centripetal Force)' },
+  { n:6,  topic:'Lab 4 — กฎอนุรักษ์โมเมนตัมเชิงเส้น (Conservation of Momentum)' },
+  { n:7,  topic:'Lab 5 — โมเมนต์ความเฉื่อย (Moment of Inertia)' },
+  { n:8,  topic:'Lab 6 — การเคลื่อนที่แบบฮาร์มอนิกเชิงเดียว (SHM)' },
+  { n:9,  topic:'Lab 7 — สั่นพ้อง (Resonance)' },
+  { n:10, topic:'Lab 8 — มอดูลัสของยัง (Young\'s Modulus)' },
+  { n:11, topic:'Lab 9 — แรงลอยตัว (Buoyancy)' },
+  { n:12, topic:'Lab 10 — ความร้อน (Heat & Thermodynamics)' },
+  { n:13, topic:'สอบประจำภาค (Final Exam)' },
+];
+
 /* helper: get current study week (MATH starts sat 13 Jun 2025) */
 function getStudyWeek(){
   const start = new Date('2025-06-13');
@@ -634,6 +663,10 @@ function getStudyWeek(){
 }
 function getMathWeek(){ const w=getStudyWeek(); return MATH_WEEKS.find(x=>x.w===w)||MATH_WEEKS[0]; }
 function getPhysWeek(){ const w=getStudyWeek(); const pw=Math.min(12,w); return PHYS_WEEKS.find(x=>x.w===pw)||PHYS_WEEKS[0]; }
+/* MIIC: Midterm = บท 1-7, ประมาณสัปดาห์ 7 */
+function getMiicWeek(){ const w=getStudyWeek(); const cw=Math.max(1,Math.min(7,w)); return MIIC_TOPICS.find(x=>x.ch===cw)||MIIC_TOPICS[0]; }
+/* PHYS190: 13 ครั้ง map ต่อสัปดาห์ (เริ่มสัปดาห์ 1) */
+function getPhys190Lab(){ const w=getStudyWeek(); const n=Math.max(1,Math.min(13,w)); return PHYS190_LABS.find(x=>x.n===n)||PHYS190_LABS[0]; }
 
 const DAYS = [
   { name:'วันจันทร์', short:'จันทร์', isClassDay:false, sessions:[
@@ -642,38 +675,38 @@ const DAYS = [
     { id:'mon-3', label:'PHYS0110 — อ่านล่วงหน้าบทต่อไป', get sub(){ return getPhysWeek().topic; }, tag:'phys' },
   ]},
   { name:'วันอังคาร', short:'อังคาร', isClassDay:false, sessions:[
-    { id:'tue-1', label:'MIIC1120 — Logic & Digital', sub:'logic gate / truth table / combinational circuit', tag:'dig' },
-    { id:'tue-2', label:'MECH0110 — Free Body Diagram', sub:'statics / equilibrium', tag:'mech' },
+    { id:'tue-1', label:'MIIC1120 — ทบทวน / ทำโจทย์', get sub(){ return getMiicWeek().topic; }, tag:'dig' },
+    { id:'tue-2', label:'MECH0110 — Free Body Diagram', sub:'statics / equilibrium / แรง', tag:'mech' },
     { id:'tue-3', label:'MATH0101 — โจทย์เพิ่มเติม', get sub(){ return getMathWeek().topic+' • ทำโจทย์'; }, tag:'math' },
   ]},
   { name:'วันพุธ', short:'พุธ', isClassDay:false, sessions:[
     { id:'wed-1', label:'PHYS0110 — Problem Set', get sub(){ return getPhysWeek().topic; }, tag:'phys' },
-    { id:'wed-2', label:'ENCC0007 — เตรียม Lab Report', sub:'อ่านขั้นตอนทดลอง / pre-lab', tag:'phys' },
+    { id:'wed-2', label:'PHYS0190 — เตรียม Lab', get sub(){ return getPhys190Lab().topic+' • อ่านคู่มือ + เตรียมเครื่องคิดเลข'; }, tag:'phys' },
     { id:'wed-3', label:'MATH0101 — อ่านล่วงหน้า / ทำใบงาน', get sub(){ return getMathWeek().topic; }, tag:'math' },
   ]},
   { name:'วันพฤหัสบดี', short:'พฤหัส', isClassDay:false, sessions:[
     { id:'thu-1', label:'EECC0232 — เตรียมคาบอาทิตย์', sub:'MIIX304 + MIIX303 สองคาบต่อเนื่อง', tag:'elec' },
     { id:'thu-2', label:'MATH0101 — โจทย์ยาก / Past Exam', get sub(){ return getMathWeek().topic+' • past exam'; }, tag:'math' },
-    { id:'thu-3', label:'PHYS0190 — ทบทวน Lab', sub:'เตรียมคาบอาทิตย์ค่ำ', tag:'phys' },
+    { id:'thu-3', label:'PHYS0190 — ทบทวน Lab', get sub(){ return getPhys190Lab().topic+' • เตรียมคาบอาทิตย์'; }, tag:'phys' },
   ]},
   { name:'วันศุกร์', short:'ศุกร์', isClassDay:false, sessions:[
     { id:'fri-1', label:'MATH0101 — Weekly Review', get sub(){ const mw=getMathWeek(); return `Week ${mw.w}: ${mw.topic}`; }, tag:'math' },
-    { id:'fri-2', label:'MIIC1120 — สรุป Mind Map', sub:'flashcard / สรุป chapter', tag:'dig' },
-    { id:'fri-3', label:'เตรียมของสำหรับเสาร์', sub:'assignment ครบ / lab kit / handout', tag:'mech' },
+    { id:'fri-2', label:'MIIC1120 — สรุป Mind Map', get sub(){ return getMiicWeek().topic+' • flashcard'; }, tag:'dig' },
+    { id:'fri-3', label:'เตรียมของสำหรับเสาร์', sub:'assignment ครบ / lab kit (คู่มือ+คิดเลข) / handout', tag:'mech' },
   ]},
   { name:'วันเสาร์ 🎓', short:'เสาร์', isClassDay:true, sessions:[
     { id:'sat-1', label:'EECC0232 — Lecture', sub:'D502 • ไฟฟ้า Sec C2', tag:'elec', time:'8:00' },
     { id:'sat-2', label:'MATH0101 — Lecture', get sub(){ return `D504 • Sec F2 | ${getMathWeek().topic}`; }, tag:'math', time:'10:30' },
     { id:'sat-3', label:'PHYS0110 — Lecture', get sub(){ return `F504 • Sec D2 | ${getPhysWeek().topic}`; }, tag:'phys', time:'13:30' },
-    { id:'sat-4', label:'MIIC1120 — Lecture', sub:'MII207A • ดิจิทัล Sec B', tag:'dig', time:'16:00' },
+    { id:'sat-4', label:'MIIC1120 — Lecture', get sub(){ return `MII207 A • Sec B | ${getMiicWeek().topic}`; }, tag:'dig', time:'16:00' },
     { id:'sat-5', label:'MECH0110 — Lecture', sub:'F502 • กลศาสตร์ Sec B', tag:'mech', time:'18:30' },
   ]},
   { name:'วันอาทิตย์ 🎓', short:'อาทิตย์', isClassDay:true, sessions:[
-    { id:'sun-1', label:'MATH0101 — Tutorial (E1/E2/F1/F2)', get sub(){ const mw=getMathWeek(); return mw.test?`📝 ${mw.test} | สอบ 10:00–10:30น • ${mw.topic}`:`ทำใบงาน • ${mw.topic}`; }, tag:'math', time:'10:00' },
-    { id:'sun-2', label:'MIIC1120 — Tutorial', sub:'MIIX302 • ดิจิทัล Sec B', tag:'dig', time:'13:30' },
+    { id:'sun-1', label:'MATH0101 — Tutorial Sec F2', get sub(){ const mw=getMathWeek(); return mw.test?`📝 ${mw.test} | สอบ 10:00–10:30น • D602 | ${mw.topic}`:`D602 • ทำใบงาน | ${mw.topic}`; }, tag:'math', time:'8:00' },
+    { id:'sun-2', label:'MIIC1120 — Tutorial', get sub(){ return `MIIX302 • Sec B | ${getMiicWeek().topic}`; }, tag:'dig', time:'13:30' },
     { id:'sun-3', label:'EECC0232 — Tutorial (กลุ่ม 1)', sub:'MIIX304 • ไฟฟ้า Sec C2', tag:'elec', time:'16:00' },
     { id:'sun-4', label:'EECC0232 — Tutorial (กลุ่ม 2)', sub:'MIIX303 • ไฟฟ้า Sec C2', tag:'elec', time:'16:00' },
-    { id:'sun-5', label:'PHYS0190 — Lab', sub:'K202 • ปฏิบัติฟิสิกส์ Sec D2', tag:'phys', time:'18:30' },
+    { id:'sun-5', label:'PHYS0190 — Lab', get sub(){ return `K202 • Sec D2 | ${getPhys190Lab().topic}`; }, tag:'phys', time:'18:30' },
   ]},
 ];
 
@@ -1070,20 +1103,43 @@ function getSys(){
   const mw=getMathWeek();
   const pw=getPhysWeek();
   const nextTest=mw.test?`📝 MATH สัปดาห์นี้มีสอบย่อย: ${mw.test}`:'';
-  return `คุณเป็นผู้ช่วยติวหนังสือนักศึกษาวิศวกรรม
-วิชา: MATH0101 แคลคูลัส (กังวลมากที่สุด), EECC0232 ไฟฟ้า, MIIC1120 ดิจิทัล, PHYS0110 ฟิสิกส์ 1, PHYS0190 ปฏิบัติฟิสิกส์, MECH0110 กลศาสตร์, ENCC0007 ปฏิบัติการ
+  const miic=getMiicWeek();
+  const lab=getPhys190Lab();
+  return `คุณเป็นผู้ช่วยติวหนังสือของ Fuse นักศึกษาวิศวกรรมปี 1
+รหัส: 6912100001 | Sec: MATH F2, EECC C2, MIIC B, PHYS D2, MECH B, PHYS0190 D2
 
-MATH0101 สัปดาห์ที่ ${mw.w}/15: ${mw.topic}
-${nextTest}
-PHYS0110 สัปดาห์ที่ ${pw.w}/12: ${pw.topic}
+=== วิชาและ context ปัจจุบัน ===
+📐 MATH0101 แคลคูลัส (กังวลมากที่สุด) — สัปดาห์ที่ ${mw.w}/15
+   เนื้อหา: ${mw.topic}
+   ${nextTest||'ยังไม่มีสอบย่อยสัปดาห์นี้'}
+   คะแนน: สอบย่อย 8 ครั้ง = 55pt | Tutorial 15×3pt + O-Week ≤ 45pt รวม
+   Tutorial: ต้องมีตรายาง, PDF เดียว, พิมพ์รหัสใน private comment, ส่งทัน
+   ⚠️ ไม่มีตรายาง = 0 | ไม่ส่ง PDF เดียว = 0 | ส่งช้า = 0
 
-คะแนน MATH: สอบย่อย 8 ครั้ง รวม 55 คะแนน | Tutorial 15 ครั้ง + O-Week รวมไม่เกิน 45 คะแนน
-ข้อกำหนด Tutorial: ต้องมีตรายาง, ส่งเป็น PDF เดียว, พิมพ์รหัสใน private comment, ส่งทัน
+⚡ EECC0232 ไฟฟ้า Sec C2 — D502 (เสาร์ 8:00) | Tutorial MIIX304+MIIX303 (อาทิตย์ 16:00)
+
+💡 MIIC1120 ดิจิทัล Sec B — สัปดาห์ที่ ${miic.ch}/7 (ก่อน Midterm)
+   เนื้อหา: ${miic.topic}
+   Midterm syllabus: บท 1-7 (ระบบเลขฐาน → Logic Gate → วงจร/ตาราง → บูลีน → K-map → Encode/Decode → Arithmetic)
+
+🔬 PHYS0110 ฟิสิกส์ 1 Sec D2 — สัปดาห์ที่ ${pw.w}/12
+   เนื้อหา: ${pw.topic}
+
+🧪 PHYS0190 ปฏิบัติฟิสิกส์ Sec D2 — K202 (อาทิตย์ 18:30)
+   Lab ครั้งที่ ${lab.n}/13: ${lab.topic}
+   คะแนน: Lab 70% + สอบประจำภาค 30% | ไม่มีสอบกลางภาค
+   ส่งผลการทดลองท้ายคาบทุกครั้ง ต้องมีคู่มือ + เครื่องคิดเลขทุกครั้ง
+
+⚙️ MECH0110 กลศาสตร์ Sec B — F502 (เสาร์ 18:30)
+🔬 ENCC0007 ปฏิบัติการ — AFTERFINAL
+
+=== สถานะวันนี้ ===
 วันนี้: ${today.name}${today.isClassDay?' (วันเรียนจริง)':' (วันทบทวน)'}
 เสร็จแล้ว: ${done.join('; ')||'ยังไม่มี'}
 ค้างอยู่: ${left.join(', ')||'ครบแล้ว!'}
-สัปดาห์นี้: ${all.join('; ')||'ยังไม่มี'}
-ตอบภาษาไทย กระชับ เป็นกันเอง ถ้าสอนคณิต/ฟิสิกส์ให้ใช้ตัวอย่างและขั้นตอนชัดเจน`;
+สัปดาห์นี้ทั้งหมด: ${all.join('; ')||'ยังไม่มี'}
+
+ตอบภาษาไทย กระชับ เป็นกันเอง ถ้าสอนคณิต/ฟิสิกส์/ดิจิทัลให้ใช้ตัวอย่างและขั้นตอนชัดเจน`;
 }
 
 function renderMsgs(){
