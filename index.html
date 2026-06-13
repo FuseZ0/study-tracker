@@ -308,9 +308,54 @@ body.rotated{
 .mavatar{width:26px;height:26px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
 .msg.ai .mavatar{background:var(--blue-d);color:var(--blue);}
 .msg.user .mavatar{background:var(--green-d);color:var(--green);}
-.mbubble{padding:9px 12px;border-radius:14px;font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word;}
+.mbubble{padding:9px 12px;border-radius:14px;font-size:13.5px;line-height:1.65;word-break:break-word;}
 .msg.ai .mbubble{background:var(--s2);border:1px solid var(--b1);border-top-left-radius:4px;}
-.msg.user .mbubble{background:var(--blue-d);border:1px solid rgba(79,142,247,.2);border-top-right-radius:4px;}
+.msg.user .mbubble{background:var(--blue-d);border:1px solid rgba(79,142,247,.2);border-top-right-radius:4px;white-space:pre-wrap;}
+/* ── Markdown render in AI bubble ── */
+.mbubble h1,.mbubble h2,.mbubble h3,.mbubble h4{font-weight:700;margin:10px 0 4px;color:var(--txt);}
+.mbubble h1{font-size:15px;}.mbubble h2{font-size:14px;border-bottom:1px solid var(--b2);padding-bottom:3px;}
+.mbubble h3,.mbubble h4{font-size:13.5px;color:var(--blue);}
+.mbubble p{margin:4px 0;line-height:1.65;}
+.mbubble ul,.mbubble ol{margin:4px 0 4px 16px;line-height:1.7;}
+.mbubble li{margin:2px 0;}
+.mbubble strong{font-weight:700;color:var(--txt);}
+.mbubble em{font-style:italic;color:var(--muted);}
+.mbubble hr{border:none;border-top:1px solid var(--b2);margin:8px 0;}
+.mbubble code{font-family:var(--mono);font-size:12px;background:var(--s3);border:1px solid var(--b2);border-radius:5px;padding:1px 5px;color:var(--amber);}
+.mbubble pre{background:var(--s3);border:1px solid var(--b2);border-radius:10px;padding:10px 12px;overflow-x:auto;margin:7px 0;}
+.mbubble pre code{background:none;border:none;padding:0;color:var(--txt);font-size:12px;line-height:1.6;}
+/* math block — highlight differently */
+.mbubble pre.math-block{background:rgba(79,142,247,.07);border-color:rgba(79,142,247,.25);}
+.mbubble pre.math-block code{color:var(--blue);}
+.mbubble blockquote{border-left:3px solid var(--blue);margin:6px 0;padding:4px 10px;background:var(--blue-d2);border-radius:0 8px 8px 0;color:var(--muted);}
+/* ── Tool modals ── */
+.tool-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+.tool-modal.open{display:flex;}
+.tool-sheet{background:var(--s1);border-radius:20px 20px 0 0;width:100%;max-width:540px;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:80dvh;display:flex;flex-direction:column;gap:10px;}
+.tool-sheet h3{font-size:14px;font-weight:700;text-align:center;color:var(--txt);}
+/* calc */
+.calc-display{background:var(--bg);border-radius:12px;padding:10px 14px;text-align:right;font-family:var(--mono);}
+.calc-expr{font-size:12px;color:var(--muted);min-height:16px;word-break:break-all;}
+.calc-result{font-size:26px;font-weight:700;color:var(--txt);min-height:34px;}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.calc-grid.sci-grid{grid-template-columns:repeat(5,1fr);}
+.cbtn{padding:12px 4px;border-radius:11px;border:none;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;transition:all .12s;background:var(--s3);color:var(--txt);}
+.cbtn:active{transform:scale(.93);}
+.cbtn.op{background:var(--s2);color:var(--amber);}
+.cbtn.eq{background:var(--blue);color:#fff;}
+.cbtn.clear{background:var(--s2);color:var(--red);}
+.cbtn.fn{background:var(--s2);color:var(--purple);font-size:11px;}
+.cbtn.span2{grid-column:span 2;}
+.sci-toggle{text-align:center;font-size:12px;color:var(--blue);cursor:pointer;padding:2px 0;}
+/* grapher */
+.graph-input-row{display:flex;gap:8px;}
+.graph-input-row input{flex:1;background:var(--s3);border:1px solid var(--b2);border-radius:10px;padding:8px 12px;color:var(--txt);font-family:var(--mono);font-size:13px;}
+.graph-input-row button{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-family:var(--font);font-weight:600;cursor:pointer;}
+#graph-canvas{border-radius:12px;background:var(--bg);width:100%;height:220px;display:block;}
+.graph-info{font-size:11px;color:var(--muted);text-align:center;}
+/* tool buttons in input row */
+.tool-btn{width:34px;height:34px;border-radius:10px;border:1px solid var(--b2);background:var(--s3);color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.tool-btn:active{background:var(--s2);color:var(--blue);}
 .tydot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--muted);margin:0 2px;animation:bounce 1.1s infinite;}
 .tydot:nth-child(2){animation-delay:.18s}.tydot:nth-child(3){animation-delay:.36s}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-5px);opacity:1}}
@@ -528,12 +573,80 @@ body.rotated{
   </div>
   <div class="input-row">
     <button class="web-btn" id="web-btn" onclick="toggleWeb()" title="ค้นหาอินเตอร์เน็ต">🌐</button>
+    <button class="tool-btn" onclick="openCalc()" title="เครื่องคิดเลข">🧮</button>
+    <button class="tool-btn" onclick="openGraph()" title="เครื่องทำกราฟ">📈</button>
     <div class="input-box">
       <textarea id="user-input" rows="1" placeholder="ถามเรื่องที่เรียน..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
     </div>
     <button class="send-btn" id="send-btn" onclick="sendMessage()">
       <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </button>
+  </div>
+</div>
+
+<!-- ══ CALCULATOR MODAL ══ -->
+<div class="tool-modal" id="calc-modal" onclick="if(event.target===this)closeModal('calc-modal')">
+  <div class="tool-sheet">
+    <h3>🧮 เครื่องคิดเลข</h3>
+    <div class="calc-display">
+      <div class="calc-expr" id="calc-expr"></div>
+      <div class="calc-result" id="calc-result">0</div>
+    </div>
+    <div class="sci-toggle" id="sci-toggle" onclick="toggleSci()">▸ Scientific</div>
+    <div class="calc-grid sci-grid" id="sci-row" style="display:none;">
+      <button class="cbtn fn" onclick="calcFn('Math.sin(','sin(')">sin</button>
+      <button class="cbtn fn" onclick="calcFn('Math.cos(','cos(')">cos</button>
+      <button class="cbtn fn" onclick="calcFn('Math.tan(','tan(')">tan</button>
+      <button class="cbtn fn" onclick="calcFn('Math.log10(','log(')">log</button>
+      <button class="cbtn fn" onclick="calcFn('Math.log(','ln(')">ln</button>
+      <button class="cbtn fn" onclick="calcFn('Math.sqrt(','√(')">√</button>
+      <button class="cbtn fn" onclick="calcFn('Math.pow(','pow(')">xⁿ</button>
+      <button class="cbtn fn" onclick="calcFn('Math.abs(','|x|')">|x|</button>
+      <button class="cbtn fn" onclick="calcInput(String(Math.PI))">π</button>
+      <button class="cbtn fn" onclick="calcInput(String(Math.E))">e</button>
+    </div>
+    <div class="calc-grid" id="calc-grid">
+      <button class="cbtn clear" onclick="calcClear()">AC</button>
+      <button class="cbtn op" onclick="calcDel()">⌫</button>
+      <button class="cbtn op" onclick="calcInput('%')">%</button>
+      <button class="cbtn op" onclick="calcInput('/')">÷</button>
+      <button class="cbtn" onclick="calcInput('7')">7</button>
+      <button class="cbtn" onclick="calcInput('8')">8</button>
+      <button class="cbtn" onclick="calcInput('9')">9</button>
+      <button class="cbtn op" onclick="calcInput('*')">×</button>
+      <button class="cbtn" onclick="calcInput('4')">4</button>
+      <button class="cbtn" onclick="calcInput('5')">5</button>
+      <button class="cbtn" onclick="calcInput('6')">6</button>
+      <button class="cbtn op" onclick="calcInput('-')">−</button>
+      <button class="cbtn" onclick="calcInput('1')">1</button>
+      <button class="cbtn" onclick="calcInput('2')">2</button>
+      <button class="cbtn" onclick="calcInput('3')">3</button>
+      <button class="cbtn op" onclick="calcInput('+')">+</button>
+      <button class="cbtn" onclick="calcInput('(')">（</button>
+      <button class="cbtn" onclick="calcInput('0')">0</button>
+      <button class="cbtn" onclick="calcInput('.')">.</button>
+      <button class="cbtn eq" onclick="calcEqual()">=</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GRAPHER MODAL ══ -->
+<div class="tool-modal" id="graph-modal" onclick="if(event.target===this)closeModal('graph-modal')">
+  <div class="tool-sheet">
+    <h3>📈 เครื่องทำกราฟ</h3>
+    <div class="graph-input-row">
+      <input type="text" id="graph-expr" placeholder="เช่น sin(x), x^2, 2*x+1" value="sin(x)">
+      <button onclick="drawGraph()">Plot</button>
+    </div>
+    <div class="graph-input-row" style="gap:6px;">
+      <span style="font-size:12px;color:var(--muted);align-self:center;">x:</span>
+      <input type="number" id="graph-xmin" value="-10" style="width:70px;">
+      <span style="font-size:12px;color:var(--muted);align-self:center;">ถึง</span>
+      <input type="number" id="graph-xmax" value="10" style="width:70px;">
+      <button onclick="resetGraphRange()" style="font-size:11px;padding:8px 8px;">Reset</button>
+    </div>
+    <canvas id="graph-canvas" width="500" height="220"></canvas>
+    <div class="graph-info" id="graph-info">ใช้ sin, cos, tan, sqrt, log, abs, pi, e — เช่น sin(x)*e^(-x/3)</div>
   </div>
 </div>
 
@@ -1142,6 +1255,55 @@ function getSys(){
 ตอบภาษาไทย กระชับ เป็นกันเอง ถ้าสอนคณิต/ฟิสิกส์/ดิจิทัลให้ใช้ตัวอย่างและขั้นตอนชัดเจน`;
 }
 
+/* ── Markdown → HTML renderer ── */
+function mdRender(text){
+  // escape HTML first
+  let s=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // fenced code blocks (```lang ... ```) — handle math separately
+  s=s.replace(/```math
+?([\s\S]*?)```/g,(_,c)=>`<pre class="math-block"><code>${c.trim()}</code></pre>`);
+  s=s.replace(/```[\w]*
+?([\s\S]*?)```/g,(_,c)=>`<pre><code>${c.trim()}</code></pre>`);
+  // inline code
+  s=s.replace(/`([^`
+]+)`/g,'<code>$1</code>');
+  // headers
+  s=s.replace(/^#### (.+)$/gm,'<h4>$1</h4>');
+  s=s.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+  s=s.replace(/^## (.+)$/gm,'<h2>$1</h2>');
+  s=s.replace(/^# (.+)$/gm,'<h1>$1</h1>');
+  // hr
+  s=s.replace(/^---+$/gm,'<hr>');
+  // bold + italic
+  s=s.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');
+  s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  // blockquote
+  s=s.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
+  // unordered list — group consecutive items
+  s=s.replace(/((?:^[•\-\*] .+
+?)+)/gm,bl=>{
+    const items=bl.trim().split('
+').map(l=>`<li>${l.replace(/^[•\-\*] /,'')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+  // ordered list
+  s=s.replace(/((?:^\d+\. .+
+?)+)/gm,bl=>{
+    const items=bl.trim().split('
+').map(l=>`<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+    return `<ol>${items}</ol>`;
+  });
+  // paragraphs — double newlines outside blocks
+  s=s.replace(/
+{2,}/g,'</p><p>');
+  s=s.replace(/
+/g,'<br>');
+  // wrap in p if no block tags at start
+  if(!/^<(h[1-4]|ul|ol|pre|hr|blockquote)/.test(s)) s='<p>'+s+'</p>';
+  return s;
+}
+
 function renderMsgs(){
   const box=document.getElementById('messages');
   box.querySelectorAll('.msg').forEach(e=>e.remove());
@@ -1151,8 +1313,9 @@ function renderMsgs(){
   msgs.forEach(m=>{
     const d=document.createElement('div');
     d.className='msg '+(m.role==='user'?'user':'ai');
+    const html=m.role==='assistant'?mdRender(m.content):m.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     d.innerHTML=`<div class="mavatar">${m.role==='user'?'คุณ':'AI'}</div>
-      <div class="mbubble">${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+      <div class="mbubble">${html}</div>`;
     box.appendChild(d);
   });
   box.scrollTop=box.scrollHeight;
@@ -1216,6 +1379,117 @@ async function sendMessage(text){
   document.getElementById('send-btn').disabled=false;
 }
 const quickSend=t=>sendMessage(t);
+
+/* ════════════════════ CALCULATOR ════════════════════ */
+let calcExpr='', sciVisible=false;
+function openCalc(){ closeAllTools(); document.getElementById('calc-modal').classList.add('open'); }
+function closeAllTools(){ ['calc-modal','graph-modal'].forEach(id=>document.getElementById(id).classList.remove('open')); }
+function toggleSci(){
+  sciVisible=!sciVisible;
+  document.getElementById('sci-row').style.display=sciVisible?'grid':'none';
+  document.getElementById('sci-toggle').textContent=sciVisible?'▾ Scientific':'▸ Scientific';
+}
+function calcInput(v){
+  calcExpr+=v;
+  document.getElementById('calc-expr').textContent=calcExpr.replace(/Math\.sin\(/g,'sin(').replace(/Math\.cos\(/g,'cos(').replace(/Math\.tan\(/g,'tan(').replace(/Math\.sqrt\(/g,'√(').replace(/Math\.log10\(/g,'log(').replace(/Math\.log\(/g,'ln(').replace(/Math\.pow\(/g,'pow(').replace(/Math\.abs\(/g,'|').replace(/Math\.PI/g,'π').replace(/Math\.E/g,'e');
+  try{
+    const r=Function('"use strict";return ('+calcExpr.replace(/%/g,'/100')+')')();
+    if(isFinite(r)) document.getElementById('calc-result').textContent=parseFloat(r.toFixed(10)).toString();
+  }catch(e){}
+}
+function calcFn(jsF, _){
+  calcExpr+=jsF;
+  document.getElementById('calc-expr').textContent=calcExpr.replace(/Math\.sin\(/g,'sin(').replace(/Math\.cos\(/g,'cos(').replace(/Math\.tan\(/g,'tan(').replace(/Math\.sqrt\(/g,'√(').replace(/Math\.log10\(/g,'log(').replace(/Math\.log\(/g,'ln(').replace(/Math\.pow\(/g,'pow(').replace(/Math\.abs\(/g,'|').replace(/Math\.PI/g,'π').replace(/Math\.E/g,'e');
+}
+function calcClear(){ calcExpr=''; document.getElementById('calc-expr').textContent=''; document.getElementById('calc-result').textContent='0'; }
+function calcDel(){ calcExpr=calcExpr.slice(0,-1); calcInput(''); calcExpr=calcExpr; document.getElementById('calc-expr').textContent=calcExpr||''; if(!calcExpr)document.getElementById('calc-result').textContent='0'; }
+function calcEqual(){
+  try{
+    const r=Function('"use strict";return ('+calcExpr.replace(/%/g,'/100')+')')();
+    const res=parseFloat(r.toFixed(10)).toString();
+    document.getElementById('calc-result').textContent=res;
+    document.getElementById('calc-expr').textContent=calcExpr.replace(/Math\.sin\(/g,'sin(').replace(/Math\.cos\(/g,'cos(').replace(/Math\.tan\(/g,'tan(').replace(/Math\.sqrt\(/g,'√(').replace(/Math\.log10\(/g,'log(').replace(/Math\.log\(/g,'ln(').replace(/Math\.pow\(/g,'pow(').replace(/Math\.abs\(/g,'|').replace(/Math\.PI/g,'π').replace(/Math\.E/g,'e')+' =';
+    calcExpr=res;
+  }catch(e){ document.getElementById('calc-result').textContent='Error'; }
+}
+
+/* ════════════════════ GRAPHER ════════════════════ */
+function openGraph(){ closeAllTools(); document.getElementById('graph-modal').classList.add('open'); setTimeout(drawGraph,100); }
+function resetGraphRange(){ document.getElementById('graph-xmin').value=-10; document.getElementById('graph-xmax').value=10; drawGraph(); }
+function drawGraph(){
+  const canvas=document.getElementById('graph-canvas');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.offsetWidth*devicePixelRatio||500, H=220*devicePixelRatio||220;
+  canvas.width=W; canvas.height=H;
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+  const w=canvas.offsetWidth||500, h=220;
+  const xmin=parseFloat(document.getElementById('graph-xmin').value)||(-10);
+  const xmax=parseFloat(document.getElementById('graph-xmax').value)||(10);
+  let exprRaw=document.getElementById('graph-expr').value.trim();
+  const info=document.getElementById('graph-info');
+  // convert user expr to JS
+  let expr=exprRaw
+    .replace(/\^/g,'**')
+    .replace(/pi/gi,'Math.PI')
+    .replace(/e/g,'Math.E')
+    .replace(/sin\(/g,'Math.sin(')
+    .replace(/cos\(/g,'Math.cos(')
+    .replace(/tan\(/g,'Math.tan(')
+    .replace(/sqrt\(/g,'Math.sqrt(')
+    .replace(/abs\(/g,'Math.abs(')
+    .replace(/log\(/g,'Math.log10(')
+    .replace(/ln\(/g,'Math.log(')
+    .replace(/exp\(/g,'Math.exp(');
+  let fn;
+  try{ fn=new Function('x','"use strict";return '+expr+';'); fn(0); }
+  catch(e){ info.textContent='⚠️ สูตรไม่ถูกต้อง: '+e.message; return; }
+  // sample points
+  const N=400;
+  const pts=[];
+  for(let i=0;i<=N;i++){
+    const x=xmin+(xmax-xmin)*i/N;
+    try{ const y=fn(x); pts.push({x,y:isFinite(y)?y:null}); }
+    catch(e){ pts.push({x,y:null}); }
+  }
+  const ys=pts.filter(p=>p.y!==null).map(p=>p.y);
+  if(!ys.length){ info.textContent='ไม่มีค่า y ที่คำนวณได้'; return; }
+  const ymin=Math.min(...ys), ymax=Math.max(...ys);
+  const ypad=(ymax-ymin)*0.1||1;
+  const Y0=ymin-ypad, Y1=ymax+ypad;
+  // helpers
+  const px=x=>(x-xmin)/(xmax-xmin)*w;
+  const py=y=>(1-(y-Y0)/(Y1-Y0))*h;
+  // background
+  ctx.fillStyle='#0a0d14'; ctx.fillRect(0,0,w,h);
+  // grid
+  ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1;
+  const xstep=nicestep(xmax-xmin,6), ystep=nicestep(Y1-Y0,5);
+  for(let x=Math.ceil(xmin/xstep)*xstep;x<=xmax;x+=xstep){
+    const gx=px(x); ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,h); ctx.stroke();
+    ctx.fillStyle='rgba(107,116,144,.7)'; ctx.font='9px monospace'; ctx.textAlign='center';
+    ctx.fillText(+x.toFixed(2),gx,h-2);
+  }
+  for(let y=Math.ceil(Y0/ystep)*ystep;y<=Y1;y+=ystep){
+    const gy=py(y); ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(w,gy); ctx.stroke();
+    ctx.fillStyle='rgba(107,116,144,.7)'; ctx.font='9px monospace'; ctx.textAlign='left';
+    ctx.fillText(+y.toFixed(2),2,gy-2);
+  }
+  // axes
+  ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1.5;
+  if(Y0<0&&Y1>0){ const ay=py(0); ctx.beginPath(); ctx.moveTo(0,ay); ctx.lineTo(w,ay); ctx.stroke(); }
+  if(xmin<0&&xmax>0){ const ax=px(0); ctx.beginPath(); ctx.moveTo(ax,0); ctx.lineTo(ax,h); ctx.stroke(); }
+  // curve
+  ctx.strokeStyle='#4f8ef7'; ctx.lineWidth=2.5; ctx.lineJoin='round';
+  ctx.beginPath(); let started=false;
+  for(const p of pts){
+    if(p.y===null){ started=false; continue; }
+    const gx=px(p.x), gy=py(p.y);
+    if(!started){ ctx.moveTo(gx,gy); started=true; } else ctx.lineTo(gx,gy);
+  }
+  ctx.stroke();
+  info.textContent='f(x) = '+exprRaw+' | x ∈ ['+xmin+', '+xmax+'] | y ∈ ['+Y0.toFixed(2)+', '+Y1.toFixed(2)+']';
+}
+function nicestep(range,target){ const r=range/target; const p=Math.pow(10,Math.floor(Math.log10(r))); const f=r/p; return f<1.5?p:f<3.5?2*p:f<7.5?5*p:10*p; }
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
 
