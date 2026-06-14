@@ -1672,7 +1672,8 @@ function updateProgDisplay(){
 
 /* ════════════════════ GRAPHER ════════════════════ */
 const FN_COLORS=['#4f8ef7','#34d399','#f59e0b','#f87171','#a78bfa','#f472b6'];
-let graphXMin=-10, graphXMax=10;
+let graphXMin=-10, graphXMax=10, graphYMin=-10, graphYMax=10;
+let graphInitialized=false, graphLastW=0, graphLastH=0;
 let graphDrawTimer=null;
 function drawGraphDebounced(){
   clearTimeout(graphDrawTimer);
@@ -1912,9 +1913,6 @@ function toggleDegMode(){
   drawGraph();
 }
 /* ════════ end math engine ════════ */
-
-let graphXMin=-10, graphXMax=10, graphYMin=-10, graphYMax=10;
-let graphInitialized=false, graphLastW=0, graphLastH=0;
 
 function graphFitY(canvas){
   var w=canvas.clientWidth||300, h=canvas.clientHeight||200;
