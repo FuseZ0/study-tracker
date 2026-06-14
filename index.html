@@ -206,6 +206,7 @@ body{
 .gcbtn{flex:1;padding:7px 4px;border:1px solid var(--b2);border-radius:10px;background:var(--s2);
   color:var(--txt);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
 .gcbtn:active{background:var(--blue-d);color:var(--blue);}
+.gcbtn.active{background:var(--blue-d);color:var(--blue);border-color:rgba(79,142,247,.4);}
 .graph-info{font-size:11px;color:var(--muted);text-align:center;flex-shrink:0;}
 .graph-hint{font-size:10px;color:var(--muted2);text-align:center;flex-shrink:0;padding-bottom:4px;}
 .graph-hint code{background:var(--s3);padding:2px 6px;border-radius:6px;font-family:var(--mono);}
@@ -753,36 +754,39 @@ body.rotated{
     </div>
   </div>
 
-  <!-- ── GRAPHER TAB ── -->
+  <!-- ── GRAPHER TAB (Desmos-style) ── -->
   <div class="tool-tab" id="tool-graph">
-    <div class="graph-wrap">
-      <div class="graph-fn-rows" id="graph-fn-rows">
-        <div class="graph-fn-row" data-idx="0">
-          <span class="fn-color" style="background:#4f8ef7"></span>
-          <span class="fn-label">f(x) =</span>
-          <input class="fn-input" type="text" value="sin(x)" placeholder="sin(x), x^2, ...">
-          <button class="fn-del" onclick="removeFnRow(0)" style="display:none">✕</button>
+    <div class="dg-wrap">
+      <div class="dg-panel" id="dg-panel">
+        <div class="dg-panel-header" onclick="toggleExprPanel()">
+          <span>📝 ฟังก์ชัน f(x)</span>
+          <span class="dg-chevron" id="dg-chevron">▾</span>
+        </div>
+        <div class="dg-panel-body" id="dg-panel-body">
+          <div class="graph-fn-rows" id="graph-fn-rows">
+            <div class="graph-fn-row" data-idx="0">
+              <button class="fn-color" style="--c:#4f8ef7" onclick="toggleFnVisible(0)"></button>
+              <span class="fn-label">f(x)=</span>
+              <input class="fn-input" type="text" value="sin(x)" placeholder="เช่น sin(x), x^2, 1/x ...">
+              <button class="fn-del" onclick="removeFnRow(0)" style="display:none">✕</button>
+            </div>
+          </div>
+          <button class="graph-add-btn" onclick="addFnRow()">+ เพิ่มฟังก์ชัน</button>
+          <div class="graph-hint">
+            <code>sin cos tan cot sec csc asin acos atan log ln sqrt cbrt abs sign exp</code><br>
+            <code>x^n, x!, nthroot(x,3), log(x,2), |x|, mod(x,3), max/min(a,b), pi, e</code>
+          </div>
         </div>
       </div>
-      <div class="graph-add-row">
-        <button class="graph-add-btn" onclick="addFnRow()">+ เพิ่มฟังก์ชัน</button>
-        <div class="graph-range">
-          <span>x:</span>
-          <input type="number" id="gxmin" value="-10">
-          <span>→</span>
-          <input type="number" id="gxmax" value="10">
+      <div class="dg-canvas-wrap" id="dg-canvas-wrap">
+        <canvas id="graph-canvas"></canvas>
+        <div class="dg-readout" id="graph-info"></div>
+        <div class="dg-fabs">
+          <button class="dgfab" id="deg-toggle" onclick="toggleDegMode()">RAD</button>
+          <button class="dgfab" onclick="graphReset()" title="รีเซ็ตมุมมอง">⌖</button>
+          <button class="dgfab" onclick="graphZoom(0.7)" title="ซูมเข้า">＋</button>
+          <button class="dgfab" onclick="graphZoom(1.4)" title="ซูมออก">－</button>
         </div>
-      </div>
-      <canvas id="graph-canvas"></canvas>
-      <div class="graph-controls">
-        <button class="gcbtn" onclick="graphZoom(0.7)">＋</button>
-        <button class="gcbtn" onclick="graphZoom(1.4)">－</button>
-        <button class="gcbtn" onclick="graphReset()">Reset</button>
-        <button class="gcbtn" onclick="drawGraph()">Plot</button>
-      </div>
-      <div class="graph-info" id="graph-info">พิมพ์ฟังก์ชัน → กด Plot หรือ Enter</div>
-      <div class="graph-hint">
-        <code>sin cos tan asin acos atan log ln sqrt abs pi e x^n</code>
       </div>
     </div>
   </div>
@@ -1668,7 +1672,31 @@ function updateProgDisplay(){
 
 /* ════════════════════ GRAPHER ════════════════════ */
 const FN_COLORS=['#4f8ef7','#34d399','#f59e0b','#f87171','#a78bfa','#f472b6'];
-let graphPanX=0, graphPanY=0, graphScale=1, graphIsDragging=false, graphLastPos=null;
+let graphXMin=-10, graphXMax=10;
+let graphDrawTimer=null;
+function drawGraphDebounced(){
+  clearTimeout(graphDrawTimer);
+  graphDrawTimer=setTimeout(drawGraph,180);
+}
+
+function toggleExprPanel(){
+  document.getElementById('dg-panel').classList.toggle('collapsed');
+  setTimeout(drawGraph,210); // wait for transition then resize canvas
+}
+
+function toggleFnVisible(idx){
+  var row=document.getElementById('graph-fn-rows').querySelector('[data-idx="'+idx+'"]');
+  if(!row) return;
+  var btn=row.querySelector('.fn-color');
+  var hidden=btn.classList.toggle('hidden');
+  row.classList.toggle('fn-hidden',hidden);
+  drawGraph();
+}
+
+function bindFnInput(inp){
+  inp.addEventListener('input',drawGraphDebounced);
+  inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); drawGraph(); } });
+}
 
 function addFnRow(){
   var rows=document.getElementById('graph-fn-rows');
@@ -1677,15 +1705,15 @@ function addFnRow(){
   var col=FN_COLORS[idx]||'#fff';
   var row=document.createElement('div');
   row.className='graph-fn-row'; row.dataset.idx=idx;
-  row.innerHTML='<span class="fn-color" style="background:'+col+'"></span>'
-    +'<span class="fn-label">f'+String.fromCharCode(96+idx)+'(x) =</span>'
+  row.innerHTML='<button class="fn-color" style="--c:'+col+'" onclick="toggleFnVisible('+idx+')"></button>'
+    +'<span class="fn-label">f'+String.fromCharCode(96+idx)+'(x)=</span>'
     +'<input class="fn-input" type="text" placeholder="cos(x), x^2+1 ...">'
     +'<button class="fn-del" onclick="removeFnRow('+idx+')">✕</button>';
   rows.appendChild(row);
-  // show del buttons if more than 1
   updateDelBtns();
-  row.querySelector('.fn-input').focus();
-  row.querySelector('.fn-input').addEventListener('keydown',function(e){ if(e.key==='Enter') drawGraph(); });
+  var inp=row.querySelector('.fn-input');
+  bindFnInput(inp);
+  inp.focus();
 }
 
 function removeFnRow(idx){
@@ -1696,11 +1724,13 @@ function removeFnRow(idx){
   Array.from(rows.children).forEach(function(r,i){
     r.dataset.idx=i;
     var col=FN_COLORS[i]||'#fff';
-    r.querySelector('.fn-color').style.background=col;
+    r.querySelector('.fn-color').style.setProperty('--c',col);
     var lbl=r.querySelector('.fn-label');
-    lbl.textContent=(i===0?'f(x) =':'f'+String.fromCharCode(97+i)+'(x) =');
+    lbl.textContent=(i===0?'f(x)=':'f'+String.fromCharCode(97+i)+'(x)=');
     var delBtn=r.querySelector('.fn-del');
     delBtn.setAttribute('onclick','removeFnRow('+i+')');
+    var colorBtn=r.querySelector('.fn-color');
+    colorBtn.setAttribute('onclick','toggleFnVisible('+i+')');
   });
   updateDelBtns();
   drawGraph();
@@ -1709,36 +1739,204 @@ function removeFnRow(idx){
 function updateDelBtns(){
   var rows=document.getElementById('graph-fn-rows');
   var n=rows.children.length;
-  Array.from(rows.querySelectorAll('.fn-del')).forEach(function(b,i){ b.style.display=n>1?'block':'none'; });
+  Array.from(rows.querySelectorAll('.fn-del')).forEach(function(b,i){ b.style.display=n>1?'flex':'none'; });
+}
+
+/* ════════ Graph math engine (GM) — supports many functions ════════ */
+let graphDegMode=false;
+
+function gammaLanczos(x){
+  const g=7;
+  const c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,
+    771.32342877765313,-176.61502916214059,12.507343278686905,
+    -0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(x<0.5) return Math.PI/(Math.sin(Math.PI*x)*gammaLanczos(1-x));
+  x-=1;
+  let a=c[0], t=x+g+0.5;
+  for(let i=1;i<g+2;i++) a+=c[i]/(x+i);
+  return Math.sqrt(2*Math.PI)*Math.pow(t,x+0.5)*Math.exp(-t)*a;
+}
+function factFn(x){
+  if(Number.isInteger(x)&&x>=0){ let r=1; for(let i=2;i<=x;i++) r*=i; return r; }
+  if(Number.isInteger(x)&&x<0) return NaN;
+  return gammaLanczos(x+1);
+}
+const GM={
+  abs:Math.abs, sign:Math.sign, sqrt:Math.sqrt, cbrt:Math.cbrt,
+  exp:Math.exp, ln:Math.log,
+  log:function(x,b){ return (b!==undefined)?Math.log(x)/Math.log(b):Math.log10(x); },
+  floor:Math.floor, ceil:Math.ceil, round:Math.round,
+  max:Math.max, min:Math.min,
+  mod:function(a,b){ return ((a%b)+b)%b; },
+  nthroot:function(x,n){ return (x<0&&n%2===1)?-Math.pow(-x,1/n):Math.pow(x,1/n); },
+  sinh:Math.sinh, cosh:Math.cosh, tanh:Math.tanh,
+  asinh:Math.asinh, acosh:Math.acosh, atanh:Math.atanh,
+  fact:factFn,
+  sin:function(x){ return Math.sin(graphDegMode?x*Math.PI/180:x); },
+  cos:function(x){ return Math.cos(graphDegMode?x*Math.PI/180:x); },
+  tan:function(x){ return Math.tan(graphDegMode?x*Math.PI/180:x); },
+  cot:function(x){ return 1/GM.tan(x); },
+  sec:function(x){ return 1/GM.cos(x); },
+  csc:function(x){ return 1/GM.sin(x); },
+  asin:function(x){ var r=Math.asin(x); return graphDegMode?r*180/Math.PI:r; },
+  acos:function(x){ var r=Math.acos(x); return graphDegMode?r*180/Math.PI:r; },
+  atan:function(x){ var r=Math.atan(x); return graphDegMode?r*180/Math.PI:r; },
+  acot:function(x){ var r=Math.atan2(1,x); return graphDegMode?r*180/Math.PI:r; },
+  asec:function(x){ var r=Math.acos(1/x); return graphDegMode?r*180/Math.PI:r; },
+  acsc:function(x){ var r=Math.asin(1/x); return graphDegMode?r*180/Math.PI:r; },
+  PI:Math.PI, E:Math.E
+};
+
+/* replace |...| with abs(...) — simple sequential pairing */
+function replaceAbsBars(s){
+  var out='', stack=[];
+  for(var i=0;i<s.length;i++){
+    var c=s[i];
+    if(c==='|'){
+      if(stack.length){
+        var startIdx=stack.pop();
+        var inner=out.slice(startIdx);
+        out=out.slice(0,startIdx)+'abs('+inner+')';
+      } else stack.push(out.length);
+    } else out+=c;
+  }
+  return out;
+}
+
+const GRAPH_FUNCS=['arcsinh','arccosh','arctanh','arcsin','arccos','arctan',
+  'asinh','acosh','atanh','nthroot','floor','round','sqrt','cbrt',
+  'sinh','cosh','tanh','sign','ceil','asin','acos','atan','acot','acsc','asec',
+  'sin','cos','tan','cot','csc','sec','abs','log','ln','exp','max','min','mod','fact'];
+const GRAPH_FUNC_ALIAS={arcsin:'asin',arccos:'acos',arctan:'atan',arcsinh:'asinh',arccosh:'acosh',arctanh:'atanh'};
+
+function graphTokenize(s){
+  var i=0, tokens=[];
+  while(i<s.length){
+    var c=s[i];
+    if(/\s/.test(c)){ i++; continue; }
+    if(/[0-9.]/.test(c)){
+      var j=i; while(j<s.length&&/[0-9.]/.test(s[j])) j++;
+      tokens.push({type:'NUM',val:s.slice(i,j)}); i=j; continue;
+    }
+    if(/[a-zA-Z_]/.test(c)){
+      var j=i; while(j<s.length&&/[a-zA-Z_0-9]/.test(s[j])) j++;
+      var word=s.slice(i,j), lower=word.toLowerCase();
+      if(GRAPH_FUNCS.indexOf(lower)!==-1){ tokens.push({type:'FUNC',val:GRAPH_FUNC_ALIAS[lower]||lower}); }
+      else if(lower==='pi'){ tokens.push({type:'VAR',val:'PI'}); }
+      else if(lower==='e'){ tokens.push({type:'VAR',val:'E'}); }
+      else if(lower==='x'){ tokens.push({type:'VAR',val:'x'}); }
+      else { tokens.push({type:'VAR',val:word}); }
+      i=j; continue;
+    }
+    if(c==='('){ tokens.push({type:'LP'}); i++; continue; }
+    if(c===')'){ tokens.push({type:'RP'}); i++; continue; }
+    if(c===','){ tokens.push({type:'COMMA'}); i++; continue; }
+    if(c==='!'){ tokens.push({type:'BANG'}); i++; continue; }
+    if('+-*/^%'.indexOf(c)!==-1){ tokens.push({type:'OP',val:c}); i++; continue; }
+    i++;
+  }
+  return tokens;
+}
+
+/* wrap preceding atom for postfix factorial: x!, 3!, (expr)! */
+function graphHandleFactorial(tokens){
+  var result=[];
+  for(var i=0;i<tokens.length;i++){
+    var t=tokens[i];
+    if(t.type==='BANG'){
+      var last=result[result.length-1];
+      if(!last) continue;
+      if(last.type==='RP'){
+        var depth=0, j=result.length-1;
+        for(; j>=0; j--){
+          if(result[j].type==='RP') depth++;
+          else if(result[j].type==='LP') depth--;
+          if(depth===0) break;
+        }
+        var start=j;
+        if(start-1>=0 && result[start-1].type==='FUNC') start--;
+        var atom=result.slice(start);
+        result=result.slice(0,start);
+        result.push({type:'WRAP',tokens:atom,fact:true});
+      } else if(last.type==='NUM'||last.type==='VAR'||last.type==='WRAP'){
+        var atom=[result.pop()];
+        result.push({type:'WRAP',tokens:atom,fact:true});
+      }
+    } else result.push(t);
+  }
+  return result;
+}
+
+function graphBuildExpr(tokens){
+  var out=[];
+  for(var k=0;k<tokens.length;k++){
+    var t=tokens[k], prev=tokens[k-1];
+    if(prev){
+      var prevEnds=prev.type==='NUM'||prev.type==='RP'||prev.type==='VAR'||prev.type==='WRAP';
+      var curStarts=t.type==='NUM'||t.type==='LP'||t.type==='VAR'||t.type==='FUNC'||t.type==='WRAP';
+      if(prevEnds&&curStarts) out.push('*');
+    }
+    switch(t.type){
+      case 'NUM': out.push(t.val); break;
+      case 'VAR': out.push(t.val==='x'?'x':'GM.'+t.val); break;
+      case 'LP': out.push('('); break;
+      case 'RP': out.push(')'); break;
+      case 'COMMA': out.push(','); break;
+      case 'OP': out.push(t.val==='^'?'**':t.val); break;
+      case 'FUNC': out.push('GM.'+t.val); break;
+      case 'WRAP':
+        var inner=graphBuildExpr(t.tokens);
+        out.push(t.fact?('GM.fact('+inner+')'):('('+inner+')'));
+        break;
+    }
+  }
+  return out.join('');
+}
+
+function preprocessExpr(raw){
+  var s=replaceAbsBars(raw.trim());
+  var tokens=graphTokenize(s);
+  tokens=graphHandleFactorial(tokens);
+  return graphBuildExpr(tokens);
 }
 
 function exprToFn(raw){
-  var expr=raw.trim()
-    .replace(/\^/g,'**')
-    .replace(/\bpi\b/gi,'Math.PI')
-    .replace(/\be\b/g,'Math.E')
-    .replace(/\bsin\b/g,'Math.sin').replace(/\bcos\b/g,'Math.cos').replace(/\btan\b/g,'Math.tan')
-    .replace(/\basin\b/g,'Math.asin').replace(/\bacos\b/g,'Math.acos').replace(/\batan\b/g,'Math.atan')
-    .replace(/\bsinh\b/g,'Math.sinh').replace(/\bcosh\b/g,'Math.cosh').replace(/\btanh\b/g,'Math.tanh')
-    .replace(/\bsqrt\b/g,'Math.sqrt').replace(/\babs\b/g,'Math.abs')
-    .replace(/\blog\b/g,'Math.log10').replace(/\bln\b/g,'Math.log').replace(/\bexp\b/g,'Math.exp')
-    .replace(/\bfloor\b/g,'Math.floor').replace(/\bceil\b/g,'Math.ceil')
-    .replace(/\bround\b/g,'Math.round').replace(/\bmax\b/g,'Math.max').replace(/\bmin\b/g,'Math.min');
-  return new Function('x','"use strict";return ('+expr+');');
+  var expr=preprocessExpr(raw);
+  return new Function('x','GM','"use strict";return ('+expr+');');
+}
+
+function toggleDegMode(){
+  graphDegMode=!graphDegMode;
+  document.getElementById('deg-toggle').textContent=graphDegMode?'DEG':'RAD';
+  document.getElementById('deg-toggle').classList.toggle('active',graphDegMode);
+  drawGraph();
+}
+/* ════════ end math engine ════════ */
+
+let graphXMin=-10, graphXMax=10, graphYMin=-10, graphYMax=10;
+let graphInitialized=false, graphLastW=0, graphLastH=0;
+
+function graphFitY(canvas){
+  var w=canvas.clientWidth||300, h=canvas.clientHeight||200;
+  var xRange=graphXMax-graphXMin;
+  var yRange=xRange*h/w;
+  var cy=(graphYMin+graphYMax)/2;
+  graphYMin=cy-yRange/2;
+  graphYMax=cy+yRange/2;
 }
 
 function graphZoom(factor){
-  var xmin=parseFloat(document.getElementById('gxmin').value)||(-10);
-  var xmax=parseFloat(document.getElementById('gxmax').value)||10;
-  var mid=(xmin+xmax)/2, range=(xmax-xmin)*factor/2;
-  document.getElementById('gxmin').value=parseFloat((mid-range).toFixed(4));
-  document.getElementById('gxmax').value=parseFloat((mid+range).toFixed(4));
+  var cx=(graphXMin+graphXMax)/2, cy=(graphYMin+graphYMax)/2;
+  var xr=(graphXMax-graphXMin)*factor/2, yr=(graphYMax-graphYMin)*factor/2;
+  graphXMin=cx-xr; graphXMax=cx+xr;
+  graphYMin=cy-yr; graphYMax=cy+yr;
   drawGraph();
 }
 
 function graphReset(){
-  document.getElementById('gxmin').value=-10;
-  document.getElementById('gxmax').value=10;
+  graphXMin=-10; graphXMax=10; graphYMin=-10; graphYMax=10;
+  var canvas=document.getElementById('graph-canvas');
+  if(canvas) graphFitY(canvas);
   drawGraph();
 }
 
@@ -1748,93 +1946,99 @@ function drawGraph(){
   var dpr=window.devicePixelRatio||1;
   var w=canvas.clientWidth||canvas.offsetWidth||300;
   var h=canvas.clientHeight||canvas.offsetHeight||200;
+  if(w<=0||h<=0) return;
   canvas.width=w*dpr; canvas.height=h*dpr;
   var ctx=canvas.getContext('2d');
+  ctx.setTransform(1,0,0,1,0,0);
   ctx.scale(dpr,dpr);
 
-  var xmin=parseFloat(document.getElementById('gxmin').value)||(-10);
-  var xmax=parseFloat(document.getElementById('gxmax').value)||10;
-  if(xmax<=xmin){ xmax=xmin+1; }
+  // (re)fit y-range to canvas aspect on first draw or when size changes
+  if(!graphInitialized || w!==graphLastW || h!==graphLastH){
+    graphFitY(canvas);
+    graphInitialized=true; graphLastW=w; graphLastH=h;
+  }
+
+  var xmin=graphXMin, xmax=graphXMax, ymin=graphYMin, ymax=graphYMax;
+  if(xmax<=xmin) xmax=xmin+1;
+  if(ymax<=ymin) ymax=ymin+1;
 
   // background
   ctx.fillStyle='#0a0d14'; ctx.fillRect(0,0,w,h);
 
-  // grid helpers
   function px(x){ return (x-xmin)/(xmax-xmin)*w; }
-  function py(y,ymin,ymax){ return (1-(y-ymin)/(ymax-ymin))*h; }
+  function py(y){ return (1-(y-ymin)/(ymax-ymin))*h; }
 
-  // collect all fn inputs
+  // collect visible fn inputs
   var rows=document.getElementById('graph-fn-rows').querySelectorAll('.graph-fn-row');
   var fns=[];
   rows.forEach(function(row,i){
     var inp=row.querySelector('.fn-input');
     var raw=inp?inp.value.trim():'';
     if(!raw) return;
+    if(row.querySelector('.fn-color').classList.contains('hidden')) return;
     var col=FN_COLORS[i]||'#fff';
-    try{ var fn=exprToFn(raw); fn(0); fns.push({fn,raw,col}); }
+    try{ var fn=exprToFn(raw); fn(0,GM); fns.push({fn,raw,col}); }
     catch(e){ }
   });
 
-  if(!fns.length){
-    ctx.fillStyle='rgba(107,116,144,.5)'; ctx.font='13px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('พิมพ์ฟังก์ชัน แล้วกด Plot',w/2,h/2);
-    document.getElementById('graph-info').textContent='ยังไม่มีฟังก์ชัน';
-    return;
-  }
-
-  // sample all fns to find y range
-  var N=600;
-  var allY=[];
-  fns.forEach(function(f){
-    for(var i=0;i<=N;i++){
-      var x=xmin+(xmax-xmin)*i/N;
-      try{ var y=f.fn(x); if(isFinite(y)) allY.push(y); }catch(e){}
-    }
-  });
-
-  var ymin,ymax;
-  if(allY.length){
-    ymin=Math.min.apply(null,allY); ymax=Math.max.apply(null,allY);
-    var ypad=(ymax-ymin)*0.12||1;
-    ymin-=ypad; ymax+=ypad;
-  } else { ymin=-10; ymax=10; }
-
   // grid lines
   function niceStep(range,n){ var r=range/n; var p=Math.pow(10,Math.floor(Math.log10(r))); var f=r/p; return f<1.5?p:f<3.5?2*p:f<7.5?5*p:10*p; }
-  var xstep=niceStep(xmax-xmin,7), ystep=niceStep(ymax-ymin,6);
-  ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1;
-  ctx.fillStyle='rgba(107,116,144,.6)'; ctx.font='9px monospace';
+  var xstep=niceStep(xmax-xmin,8), ystep=niceStep(ymax-ymin,8);
+  ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1;
+  ctx.fillStyle='rgba(107,116,144,.65)'; ctx.font='10px monospace';
   for(var gx=Math.ceil(xmin/xstep)*xstep; gx<=xmax; gx+=xstep){
     var sx=px(gx); ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,h); ctx.stroke();
-    ctx.textAlign='center'; ctx.fillText(+gx.toFixed(2),sx,h-2);
   }
   for(var gy=Math.ceil(ymin/ystep)*ystep; gy<=ymax; gy+=ystep){
-    var sy=py(gy,ymin,ymax); ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(w,sy); ctx.stroke();
-    ctx.textAlign='left'; ctx.fillText(+gy.toFixed(2),2,sy-2);
+    var sy=py(gy); ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(w,sy); ctx.stroke();
   }
 
-  // axes
-  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=1.5;
-  if(ymin<0&&ymax>0){ var ay=py(0,ymin,ymax); ctx.beginPath(); ctx.moveTo(0,ay); ctx.lineTo(w,ay); ctx.stroke(); }
-  if(xmin<0&&xmax>0){ var ax=px(0); ctx.beginPath(); ctx.moveTo(ax,0); ctx.lineTo(ax,h); ctx.stroke(); }
+  // axes (brighter)
+  ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1.5;
+  var ax=px(0), ay=py(0);
+  var axisXVisible=xmin<0&&xmax>0, axisYVisible=ymin<0&&ymax>0;
+  if(axisXVisible){ ctx.beginPath(); ctx.moveTo(0,ay); ctx.lineTo(w,ay); ctx.stroke(); }
+  if(axisYVisible){ ctx.beginPath(); ctx.moveTo(ax,0); ctx.lineTo(ax,h); ctx.stroke(); }
 
-  // draw each fn
-  var info=[];
+  // axis labels (along visible axes, or edges if axis off-screen)
+  ctx.fillStyle='rgba(148,158,184,.8)'; ctx.font='10px monospace';
+  var labelY=axisXVisible?ay+12:h-4;
+  var labelX=axisYVisible?ax+4:4;
+  for(var gx=Math.ceil(xmin/xstep)*xstep; gx<=xmax; gx+=xstep){
+    if(Math.abs(gx)<xstep/1000) continue;
+    ctx.textAlign='center'; ctx.fillText(numLabel(gx),px(gx),Math.min(Math.max(labelY,12),h-2));
+  }
+  for(var gy=Math.ceil(ymin/ystep)*ystep; gy<=ymax; gy+=ystep){
+    if(Math.abs(gy)<ystep/1000) continue;
+    ctx.textAlign='left'; ctx.fillText(numLabel(gy),Math.min(Math.max(labelX,2),w-26),py(gy)-2);
+  }
+  function numLabel(v){ v=+v.toFixed(6); return v.toString(); }
+
+  // draw each fn (skip huge jumps = discontinuities/asymptotes)
+  var N=Math.min(900,Math.round(w*1.5));
+  var jumpLimit=(ymax-ymin)*30+1e-6;
   fns.forEach(function(f){
-    ctx.strokeStyle=f.col; ctx.lineWidth=2.2; ctx.lineJoin='round';
+    ctx.strokeStyle=f.col; ctx.lineWidth=2.4; ctx.lineJoin='round'; ctx.lineCap='round';
     ctx.beginPath(); var started=false;
     for(var i=0;i<=N;i++){
       var x=xmin+(xmax-xmin)*i/N;
-      var y; try{ y=f.fn(x); }catch(e){ started=false; continue; }
-      if(!isFinite(y)||Math.abs(y-ymax)>5*(ymax-ymin)){ started=false; continue; }
-      var sx=px(x), sy=py(y,ymin,ymax);
+      var y; try{ y=f.fn(x,GM); }catch(e){ started=false; continue; }
+      if(!isFinite(y)){ started=false; continue; }
+      if(y<ymin-jumpLimit||y>ymax+jumpLimit){ started=false; continue; }
+      var sx=px(x), sy=py(y);
       if(!started){ ctx.moveTo(sx,sy); started=true; } else ctx.lineTo(sx,sy);
     }
     ctx.stroke();
-    info.push(f.raw);
   });
 
-  document.getElementById('graph-info').textContent='f(x): '+info.join(' | ')+' | x∈['+xmin+','+xmax+']';
+  // origin marker
+  if(axisXVisible&&axisYVisible){
+    ctx.fillStyle='rgba(148,158,184,.7)'; ctx.font='10px monospace'; ctx.textAlign='right';
+    ctx.fillText('0',ax-4,ay+12);
+  }
+
+  document.getElementById('graph-info').textContent=
+    'x:['+xmin.toFixed(2)+', '+xmax.toFixed(2)+']  y:['+ymin.toFixed(2)+', '+ymax.toFixed(2)+']';
 }
 
 /* canvas touch/mouse pan */
