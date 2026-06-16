@@ -985,6 +985,7 @@ body.rotated{
   </div>
   <div class="input-row">
     <button class="web-btn" id="web-btn" onclick="toggleWeb()" title="ค้นหาอินเตอร์เน็ต">🌐</button>
+    <button class="web-btn" id="rag-btn" onclick="openRagPanel()" title="ค้นหาไฟล์จาก RAG Server" style="position:relative">📚<span class="rag-dot" id="rag-dot" style="display:none"></span></button>
     <div class="input-box">
       <div id="attach-preview" class="attach-preview" style="display:none"></div>
       <div class="input-box-row">
@@ -997,6 +998,33 @@ body.rotated{
     </button>
   </div>
   <input type="file" id="file-input" accept="image/*,.pdf,.txt,.md,.csv,.json,.py,.js,.ts,.html,.css,.c,.cpp,.h" multiple style="display:none" onchange="handleFileSelect(event)">
+
+<!-- RAG Panel Modal -->
+<div class="modal-backdrop" id="rag-modal" onclick="handleBackdrop(event,'rag-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>📚 RAG — ไฟล์บน Server</span>
+      <button class="modal-btn ghost" style="padding:4px 10px;font-size:11px" onclick="ragUploadFile()">+ อัพโหลด</button>
+    </div>
+    <div id="rag-status-bar" style="font-size:11px;color:var(--muted);margin-bottom:10px"></div>
+    <div id="rag-doc-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;margin-bottom:12px"></div>
+
+    <div style="border-top:1px solid var(--b1);padding-top:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">🔍 ค้นหาในไฟล์</div>
+      <div style="display:flex;gap:6px">
+        <input id="rag-query-input" class="modal-input" type="text" placeholder="พิมพ์คำค้นหา..." style="flex:1;margin:0">
+        <button class="modal-btn primary" style="flex-shrink:0" onclick="ragSearch()">ค้น</button>
+      </div>
+      <div id="rag-results" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto"></div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="modal-btn ghost" onclick="closeModal('rag-modal')">ปิด</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="rag-file-input" accept=".pdf,.txt,.md,.csv,.json,.py,.js,.html,.c,.cpp" multiple style="display:none" onchange="ragHandleUpload(event)">
 </div>
 
 
@@ -1281,6 +1309,19 @@ body.rotated{
         เลือก scope: <code>gist</code> แล้ว copy token มาใส่
       </div>
       <input class="modal-input" id="gh-token-input" type="password" placeholder="ghp_...">
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">📚 RAG Server (Proxmox LXC)</div>
+      <div class="modal-sub" style="margin-bottom:8px">
+        เซิร์ฟเวอร์เก็บไฟล์บน Proxmox สำหรับให้ AI ค้นหาเนื้อหา
+      </div>
+      <input class="modal-input" id="rag-url-input" type="url" placeholder="https://rag.yourdomain.com" style="margin-bottom:6px">
+      <input class="modal-input" id="rag-key-input" type="password" placeholder="RAG API Key">
+      <div style="margin-top:8px;display:flex;gap:6px">
+        <button class="modal-btn ghost" onclick="testRagConnection()" style="flex:1;font-size:11px">🔌 ทดสอบการเชื่อมต่อ</button>
+      </div>
+      <div id="rag-test-result" style="margin-top:6px;font-size:11px;color:var(--muted);min-height:16px"></div>
     </div>
 
     <div class="modal-actions">
@@ -1779,15 +1820,39 @@ function buildTopicHistory(){
 function openSettingsModal(){
   document.getElementById('or-key-input').value=getOrKey();
   document.getElementById('gh-token-input').value=getGhToken();
+  document.getElementById('rag-url-input').value=getRagUrl();
+  document.getElementById('rag-key-input').value=getRagKey();
+  document.getElementById('rag-test-result').textContent='';
   document.getElementById('settings-modal').classList.add('open');
 }
 function saveSettings(){
   const orKey=document.getElementById('or-key-input').value.trim();
   const ghToken=document.getElementById('gh-token-input').value.trim();
+  const ragUrl=document.getElementById('rag-url-input').value.trim().replace(/\/$/,'');
+  const ragKey=document.getElementById('rag-key-input').value.trim();
   if(orKey) localStorage.setItem('st_orkey',orKey);
   if(ghToken){ localStorage.setItem('st_ghtoken',ghToken); if(!gistId) syncToGist(); else syncFromGist(); }
+  if(ragUrl) localStorage.setItem('st_ragurl',ragUrl); else localStorage.removeItem('st_ragurl');
+  if(ragKey) localStorage.setItem('st_ragkey',ragKey); else localStorage.removeItem('st_ragkey');
   updateKeyBtn();
   closeModal('settings-modal');
+}
+function getRagUrl(){ return localStorage.getItem('st_ragurl')||''; }
+function getRagKey(){ return localStorage.getItem('st_ragkey')||''; }
+
+async function testRagConnection(){
+  const url=getRagUrl()||document.getElementById('rag-url-input').value.trim().replace(/\/$/,'');
+  const el=document.getElementById('rag-test-result');
+  if(!url){ el.textContent='⚠️ ยังไม่ได้ใส่ URL'; el.style.color='var(--amber)'; return; }
+  el.textContent='⏳ กำลังทดสอบ...'; el.style.color='var(--muted)';
+  try{
+    const r=await fetch(url+'/health',{signal:AbortSignal.timeout(5000)});
+    const d=await r.json();
+    if(d.status==='ok'){ el.textContent='✅ เชื่อมต่อสำเร็จ!'; el.style.color='var(--green)'; }
+    else{ el.textContent='⚠️ server ตอบแต่ status ไม่ใช่ ok'; el.style.color='var(--amber)'; }
+  }catch(e){
+    el.textContent='❌ เชื่อมต่อไม่ได้: '+e.message; el.style.color='var(--red)';
+  }
 }
 function clearAllKeys(){
   ['st_orkey','st_ghtoken','st_gist_id'].forEach(k=>localStorage.removeItem(k));
@@ -2160,13 +2225,21 @@ async function sendMessage(text){
   const apiMsgs = msgs.slice(-13,-1).map(m=>({ role:m.role, content:m.content }));
   apiMsgs.push({ role:'user', content });
 
+  // inject RAG context if available
+  const sysParts = [getSys()];
+  if(ragContext){
+    sysParts.push('\n\n--- เนื้อหาจากเอกสารที่ค้นหา (ใช้ตอบคำถาม) ---\n'+ragContext);
+    ragContext=''; updateRagDot(); // ใช้แล้วเคลียร์
+  }
+  const sysMsg = sysParts.join('');
+
   try{
     const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key,'HTTP-Referer':'https://study-tracker.local','X-Title':'Study Tracker'},
       body:JSON.stringify({
         model: webSearch ? curModel.replace(':free','')+':online' : curModel,
-        messages:[{role:'system',content:getSys()}, ...apiMsgs],
+        messages:[{role:'system',content:sysMsg}, ...apiMsgs],
         max_tokens:1500
       })
     });
@@ -3018,6 +3091,157 @@ function drawGraph(){
     renderPtList();
   });
 })();
+
+/* ════════════════════ RAG CLIENT ════════════════════ */
+let ragContext = ''; // ข้อความที่ค้นหาได้ จะแนบไปกับ prompt
+
+async function ragFetch(path, opts={}){
+  const url = getRagUrl();
+  const key = getRagKey();
+  if(!url) throw new Error('ยังไม่ได้ตั้งค่า RAG URL');
+  const res = await fetch(url+path, {
+    ...opts,
+    headers: { 'x-api-key': key, ...(opts.headers||{}) },
+    signal: AbortSignal.timeout(15000),
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+
+async function openRagPanel(){
+  const url = getRagUrl();
+  if(!url){ openSettingsModal(); return; }
+  document.getElementById('rag-modal').classList.add('open');
+  document.getElementById('rag-status-bar').textContent = '⏳ กำลังโหลดรายการไฟล์...';
+  document.getElementById('rag-doc-list').innerHTML = '';
+  document.getElementById('rag-results').innerHTML = '';
+  try{
+    const data = await ragFetch('/docs-list');
+    renderRagDocList(data.docs);
+    document.getElementById('rag-status-bar').textContent =
+      `📂 ${data.total} ไฟล์บน server`;
+  }catch(e){
+    document.getElementById('rag-status-bar').textContent = '❌ '+e.message;
+  }
+}
+
+function renderRagDocList(docs){
+  const el = document.getElementById('rag-doc-list');
+  if(!docs.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--muted2);text-align:center;padding:12px">ยังไม่มีไฟล์ — กด + อัพโหลด</div>';
+    return;
+  }
+  el.innerHTML = docs.map(d=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--s3);border:1px solid var(--b2);border-radius:10px;padding:8px 10px">
+      <span style="font-size:16px">${d.mime==='application/pdf'?'📄':d.mime.startsWith('image')?'🖼️':'📝'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.name}</div>
+        <div style="font-size:10px;color:var(--muted)">${d.chunks} chunks • ${(d.size/1024).toFixed(1)} KB</div>
+      </div>
+      <button onclick="deleteRagDoc('${d.id}',this)" style="border:none;background:none;color:var(--muted2);font-size:13px;cursor:pointer;padding:2px 6px;border-radius:6px">🗑</button>
+    </div>`).join('');
+}
+
+function ragUploadFile(){
+  document.getElementById('rag-file-input').value='';
+  document.getElementById('rag-file-input').click();
+}
+
+async function ragHandleUpload(e){
+  const files = Array.from(e.target.files);
+  const bar = document.getElementById('rag-status-bar');
+  for(const file of files){
+    bar.textContent = `⏳ กำลังอัพโหลด ${file.name}...`;
+    try{
+      const fd = new FormData();
+      fd.append('file', file);
+      const data = await ragFetch('/upload', { method:'POST', body:fd });
+      bar.textContent = `✅ อัพโหลด ${data.name} สำเร็จ (${data.chunks} chunks)`;
+    }catch(err){
+      bar.textContent = `❌ อัพโหลดล้มเหลว: ${err.message}`;
+    }
+  }
+  // refresh list
+  try{
+    const data = await ragFetch('/docs-list');
+    renderRagDocList(data.docs);
+    document.getElementById('rag-status-bar').textContent = `📂 ${data.total} ไฟล์บน server`;
+  }catch(_){}
+}
+
+async function deleteRagDoc(id, btn){
+  if(!confirm('ลบไฟล์นี้?')) return;
+  btn.textContent='⏳'; btn.disabled=true;
+  try{
+    await ragFetch('/doc/'+id, {method:'DELETE'});
+    await openRagPanel();
+  }catch(e){
+    document.getElementById('rag-status-bar').textContent='❌ '+e.message;
+  }
+}
+
+async function ragSearch(){
+  const q = document.getElementById('rag-query-input').value.trim();
+  if(!q) return;
+  const el = document.getElementById('rag-results');
+  el.innerHTML='<div style="font-size:12px;color:var(--muted)">⏳ กำลังค้นหา...</div>';
+  try{
+    const data = await ragFetch('/query', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({query:q, top_k:4})
+    });
+    if(!data.results.length){
+      el.innerHTML='<div style="font-size:12px;color:var(--muted2)">ไม่พบผลลัพธ์</div>';
+      ragContext=''; updateRagDot();
+      return;
+    }
+    // build context string
+    ragContext = data.results.map((r,i)=>
+      `[เอกสาร: ${r.doc_name} — ส่วนที่ ${r.chunk_idx+1}]\n${r.text}`
+    ).join('\n\n---\n\n');
+    updateRagDot();
+
+    el.innerHTML = data.results.map((r,i)=>`
+      <div style="background:var(--s3);border:1px solid var(--b2);border-radius:10px;padding:8px 10px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:10px;font-weight:600;color:var(--blue)">${r.doc_name}</span>
+          <span style="font-size:9px;color:var(--muted2)">score: ${r.score}</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--txt);line-height:1.6;max-height:80px;overflow:hidden">${r.text.slice(0,200)}${r.text.length>200?'…':''}</div>
+      </div>`).join('');
+
+    // แสดงปุ่มใช้ context
+    el.innerHTML += `<button onclick="useRagContext()" style="margin-top:6px;width:100%;padding:8px;border-radius:10px;border:1px solid rgba(79,142,247,.4);background:var(--blue-d);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer">
+      ✅ ใช้ ${data.results.length} ผลลัพธ์นี้ในการถาม AI
+    </button>`;
+  }catch(e){
+    el.innerHTML='<div style="font-size:12px;color:var(--red)">❌ '+e.message+'</div>';
+  }
+}
+
+function useRagContext(){
+  closeModal('rag-modal');
+  // focus input
+  const inp = document.getElementById('user-input');
+  inp.focus();
+  document.getElementById('rag-btn').style.background='var(--blue-d)';
+  document.getElementById('rag-btn').style.borderColor='var(--blue)';
+}
+
+function updateRagDot(){
+  const dot = document.getElementById('rag-dot');
+  const btn = document.getElementById('rag-btn');
+  if(ragContext){
+    dot.style.display='block';
+    btn.style.background='var(--blue-d)';
+    btn.style.borderColor='rgba(79,142,247,.5)';
+  } else {
+    dot.style.display='none';
+    btn.style.background='';
+    btn.style.borderColor='';
+  }
+}
 
 /* ════════════════════ INIT ════════════════════ */
 function init(){
