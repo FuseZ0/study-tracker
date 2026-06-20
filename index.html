@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-<title>Study Tracker</title>
+<title>Study Trackers</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a0d14">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -688,6 +688,13 @@ body.rotated{
   margin:9px 0;
   overflow:hidden;
 }
+.code-block.math-block{
+  background:rgba(79,142,247,.07);
+  border-color:rgba(79,142,247,.25);
+}
+.code-block.math-block .code-block-header{background:rgba(79,142,247,.06);}
+.code-block.math-block .code-lang{color:var(--blue);}
+.code-block.math-block pre code{color:var(--blue);}
 .code-block-header{
   display:flex;align-items:center;justify-content:space-between;
   padding:6px 12px;
@@ -760,6 +767,10 @@ body.rotated{
   -webkit-tap-highlight-color:transparent;
 }
 .web-btn.on{background:var(--blue-d);border-color:var(--blue);}
+.rag-dot{
+  position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;
+  background:var(--green);box-shadow:0 0 0 2px var(--s1);
+}
 
 /* model selector */
 .model-row{
@@ -985,7 +996,7 @@ body.rotated{
   </div>
   <div class="input-row">
     <button class="web-btn" id="web-btn" onclick="toggleWeb()" title="ค้นหาอินเตอร์เน็ต">🌐</button>
-    <button class="web-btn" id="rag-btn" onclick="openRagPanel()" title="ค้นหาไฟล์จาก RAG Server" style="position:relative">📚<span class="rag-dot" id="rag-dot" style="display:none"></span></button>
+    <button class="web-btn" id="rag-btn" onclick="openRagPanel()" title="ค้นหาไฟล์จาก Google Drive" style="position:relative">📂<span class="rag-dot" id="rag-dot" style="display:none"></span></button>
     <div class="input-box">
       <div id="attach-preview" class="attach-preview" style="display:none"></div>
       <div class="input-box-row">
@@ -999,12 +1010,12 @@ body.rotated{
   </div>
   <input type="file" id="file-input" accept="image/*,.pdf,.txt,.md,.csv,.json,.py,.js,.ts,.html,.css,.c,.cpp,.h" multiple style="display:none" onchange="handleFileSelect(event)">
 
-<!-- RAG Panel Modal -->
+<!-- Google Drive Panel Modal -->
 <div class="modal-backdrop" id="rag-modal" onclick="handleBackdrop(event,'rag-modal')">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>📚 RAG — ไฟล์บน Server</span>
+      <span>📂 Google Drive — ไฟล์การเรียน</span>
       <button class="modal-btn ghost" style="padding:4px 10px;font-size:11px" onclick="ragUploadFile()">+ อัพโหลด</button>
     </div>
     <div id="rag-status-bar" style="font-size:11px;color:var(--muted);margin-bottom:10px"></div>
@@ -1312,12 +1323,13 @@ body.rotated{
     </div>
 
     <div class="modal-section">
-      <div class="modal-section-title">📚 RAG Server (Proxmox LXC)</div>
+      <div class="modal-section-title">📂 Google Drive (ค้นหาไฟล์การเรียน)</div>
       <div class="modal-sub" style="margin-bottom:8px">
-        เซิร์ฟเวอร์เก็บไฟล์บน Proxmox สำหรับให้ AI ค้นหาเนื้อหา
+        เชื่อม Apps Script Web App ที่ผูกกับโฟลเดอร์ Drive ของคุณ — ดู<br>
+        วิธีตั้งค่าได้จากไฟล์ <code>gdrive_rag_appsscript.gs</code>
       </div>
-      <input class="modal-input" id="rag-url-input" type="url" placeholder="https://rag.yourdomain.com" style="margin-bottom:6px">
-      <input class="modal-input" id="rag-key-input" type="password" placeholder="RAG API Key">
+      <input class="modal-input" id="rag-url-input" type="url" placeholder="https://script.google.com/macros/s/XXXX/exec" style="margin-bottom:6px">
+      <input class="modal-input" id="rag-key-input" type="password" placeholder="API Key (ตั้งไว้ในสคริปต์)">
       <div style="margin-top:8px;display:flex;gap:6px">
         <button class="modal-btn ghost" onclick="testRagConnection()" style="flex:1;font-size:11px">🔌 ทดสอบการเชื่อมต่อ</button>
       </div>
@@ -1842,13 +1854,16 @@ function getRagKey(){ return localStorage.getItem('st_ragkey')||''; }
 
 async function testRagConnection(){
   const url=getRagUrl()||document.getElementById('rag-url-input').value.trim().replace(/\/$/,'');
+  const key=getRagKey()||document.getElementById('rag-key-input').value.trim();
   const el=document.getElementById('rag-test-result');
   if(!url){ el.textContent='⚠️ ยังไม่ได้ใส่ URL'; el.style.color='var(--amber)'; return; }
   el.textContent='⏳ กำลังทดสอบ...'; el.style.color='var(--muted)';
   try{
-    const r=await fetch(url+'/health',{signal:AbortSignal.timeout(5000)});
+    const qs=new URLSearchParams({action:'health',key});
+    const r=await fetch(url+(url.includes('?')?'&':'?')+qs.toString(),{signal:AbortSignal.timeout(8000)});
     const d=await r.json();
-    if(d.status==='ok'){ el.textContent='✅ เชื่อมต่อสำเร็จ!'; el.style.color='var(--green)'; }
+    if(d.status==='ok'){ el.textContent='✅ เชื่อมต่อ Google Drive สำเร็จ!'; el.style.color='var(--green)'; }
+    else if(d.error==='unauthorized'){ el.textContent='❌ API Key ไม่ถูกต้อง'; el.style.color='var(--red)'; }
     else{ el.textContent='⚠️ server ตอบแต่ status ไม่ใช่ ok'; el.style.color='var(--amber)'; }
   }catch(e){
     el.textContent='❌ เชื่อมต่อไม่ได้: '+e.message; el.style.color='var(--red)';
@@ -2225,7 +2240,7 @@ async function sendMessage(text){
   const apiMsgs = msgs.slice(-13,-1).map(m=>({ role:m.role, content:m.content }));
   apiMsgs.push({ role:'user', content });
 
-  // inject RAG context if available
+  // inject Google Drive context if available
   const sysParts = [getSys()];
   if(ragContext){
     sysParts.push('\n\n--- เนื้อหาจากเอกสารที่ค้นหา (ใช้ตอบคำถาม) ---\n'+ragContext);
@@ -3092,20 +3107,27 @@ function drawGraph(){
   });
 })();
 
-/* ════════════════════ RAG CLIENT ════════════════════ */
+/* ════════════════════ GOOGLE DRIVE CLIENT (Apps Script backend) ════════════════════ */
 let ragContext = ''; // ข้อความที่ค้นหาได้ จะแนบไปกับ prompt
 
-async function ragFetch(path, opts={}){
+/* Apps Script Web App รับเป็น query string ?action=...&key=...
+   ไม่รองรับ custom header หรือ DELETE verb ตรงๆ จึงส่งทุกอย่างผ่าน GET/POST + action param */
+async function ragFetch(action, paramsObj={}, postBody=null){
   const url = getRagUrl();
   const key = getRagKey();
-  if(!url) throw new Error('ยังไม่ได้ตั้งค่า RAG URL');
-  const res = await fetch(url+path, {
-    ...opts,
-    headers: { 'x-api-key': key, ...(opts.headers||{}) },
-    signal: AbortSignal.timeout(15000),
-  });
+  if(!url) throw new Error('ยังไม่ได้ตั้งค่า Google Drive');
+  const qs = new URLSearchParams({ action, key, ...paramsObj });
+  const fullUrl = url + (url.includes('?') ? '&' : '?') + qs.toString();
+  const opts = { signal: AbortSignal.timeout(20000) };
+  if(postBody){
+    opts.method = 'POST';
+    opts.body = postBody; // URLSearchParams — Apps Script reads via e.parameter
+  }
+  const res = await fetch(fullUrl, opts);
   if(!res.ok) throw new Error('HTTP '+res.status);
-  return res.json();
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data;
 }
 
 async function openRagPanel(){
@@ -3116,10 +3138,10 @@ async function openRagPanel(){
   document.getElementById('rag-doc-list').innerHTML = '';
   document.getElementById('rag-results').innerHTML = '';
   try{
-    const data = await ragFetch('/docs-list');
+    const data = await ragFetch('docs-list');
     renderRagDocList(data.docs);
     document.getElementById('rag-status-bar').textContent =
-      `📂 ${data.total} ไฟล์บน server`;
+      `📂 ${data.total} ไฟล์ใน Google Drive`;
   }catch(e){
     document.getElementById('rag-status-bar').textContent = '❌ '+e.message;
   }
@@ -3147,15 +3169,28 @@ function ragUploadFile(){
   document.getElementById('rag-file-input').click();
 }
 
+function fileToBase64(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(reader.result.split(',')[1]); // strip data: prefix
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function ragHandleUpload(e){
   const files = Array.from(e.target.files);
   const bar = document.getElementById('rag-status-bar');
   for(const file of files){
     bar.textContent = `⏳ กำลังอัพโหลด ${file.name}...`;
     try{
-      const fd = new FormData();
-      fd.append('file', file);
-      const data = await ragFetch('/upload', { method:'POST', body:fd });
+      const base64 = await fileToBase64(file);
+      const body = new URLSearchParams({
+        filename: file.name,
+        mimetype: file.type || 'text/plain',
+        data: base64,
+      });
+      const data = await ragFetch('upload', {}, body);
       bar.textContent = `✅ อัพโหลด ${data.name} สำเร็จ (${data.chunks} chunks)`;
     }catch(err){
       bar.textContent = `❌ อัพโหลดล้มเหลว: ${err.message}`;
@@ -3163,9 +3198,9 @@ async function ragHandleUpload(e){
   }
   // refresh list
   try{
-    const data = await ragFetch('/docs-list');
+    const data = await ragFetch('docs-list');
     renderRagDocList(data.docs);
-    document.getElementById('rag-status-bar').textContent = `📂 ${data.total} ไฟล์บน server`;
+    document.getElementById('rag-status-bar').textContent = `📂 ${data.total} ไฟล์ใน Google Drive`;
   }catch(_){}
 }
 
@@ -3173,7 +3208,7 @@ async function deleteRagDoc(id, btn){
   if(!confirm('ลบไฟล์นี้?')) return;
   btn.textContent='⏳'; btn.disabled=true;
   try{
-    await ragFetch('/doc/'+id, {method:'DELETE'});
+    await ragFetch('delete', { id });
     await openRagPanel();
   }catch(e){
     document.getElementById('rag-status-bar').textContent='❌ '+e.message;
@@ -3186,11 +3221,7 @@ async function ragSearch(){
   const el = document.getElementById('rag-results');
   el.innerHTML='<div style="font-size:12px;color:var(--muted)">⏳ กำลังค้นหา...</div>';
   try{
-    const data = await ragFetch('/query', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({query:q, top_k:4})
-    });
+    const data = await ragFetch('query', { query:q, top_k:4 });
     if(!data.results.length){
       el.innerHTML='<div style="font-size:12px;color:var(--muted2)">ไม่พบผลลัพธ์</div>';
       ragContext=''; updateRagDot();
