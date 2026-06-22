@@ -374,6 +374,18 @@ body{
 }
 .dg-mode-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
 
+/* ── grid spacing (auto / manual) — applies to canvas regardless of mode ── */
+.dg-grid-bar{display:flex;align-items:center;gap:6px;flex-shrink:0;padding-top:8px;}
+.dg-grid-bar-label{font-size:11px;color:var(--muted);flex-shrink:0;}
+.dg-grid-toggle{
+  flex:1;padding:6px 4px;border:1px solid var(--b2);border-radius:8px;background:var(--s3);
+  color:var(--muted);font-family:var(--font);font-size:10.5px;font-weight:600;cursor:pointer;
+  transition:all .15s;-webkit-tap-highlight-color:transparent;
+}
+.dg-grid-toggle.active{background:var(--blue-d);color:var(--blue);border-color:rgba(79,142,247,.4);}
+.dg-grid-inputs{display:flex;align-items:center;gap:5px;flex-shrink:0;padding-top:6px;}
+.dg-grid-foot{padding-top:6px;padding-bottom:8px;border-bottom:1px solid var(--b1);}
+
 /* ── point panel ── */
 .pt-toolbar{
   display:flex;align-items:center;gap:6px;flex-shrink:0;
@@ -1210,6 +1222,20 @@ body.rotated{
           <button class="dg-mode-btn active" id="mode-fn" onclick="setGraphMode('fn')">f(x)</button>
           <button class="dg-mode-btn" id="mode-pt" onclick="setGraphMode('pt')">จุด</button>
         </div>
+
+        <!-- GRID SPACING (auto / manual) — affects canvas regardless of mode -->
+        <div class="dg-grid-bar">
+          <span class="dg-grid-bar-label">ตาราง</span>
+          <button class="dg-grid-toggle active" id="grid-mode-auto" onclick="setGridMode(true)">อัตโนมัติ</button>
+          <button class="dg-grid-toggle" id="grid-mode-manual" onclick="setGridMode(false)">กำหนดเอง</button>
+        </div>
+        <div class="dg-grid-inputs" id="dg-grid-inputs" style="display:none">
+          <span class="pt-xy-label">X</span>
+          <input class="pt-coord-input" id="grid-step-x" type="number" step="any" min="0.0001" value="1" oninput="onGridStepInput()">
+          <span class="pt-xy-label">Y</span>
+          <input class="pt-coord-input" id="grid-step-y" type="number" step="any" min="0.0001" value="1" oninput="onGridStepInput()">
+        </div>
+        <div class="graph-hint dg-grid-foot">1 ช่องใหญ่ = 5 ช่องเล็ก</div>
 
         <!-- FN PANEL -->
         <div class="dg-panel-body" id="dg-panel-fn">
@@ -2450,6 +2476,7 @@ let graphXMin=-10, graphXMax=10, graphYMin=-10, graphYMax=10;
 let graphInitialized=false, graphLastW=0, graphLastH=0;
 let graphDrawTimer=null;
 let fnTapX=null;
+let gridAutoMode=true, gridStepXManual=1, gridStepYManual=1;
 
 /* ── graph mode: 'fn' | 'pt' ── */
 let graphMode='fn';
@@ -2799,6 +2826,22 @@ function toggleDegMode(){
   document.getElementById('deg-toggle').classList.toggle('active',graphDegMode);
   drawGraph();
 }
+
+function setGridMode(auto){
+  gridAutoMode=auto;
+  document.getElementById('grid-mode-auto').classList.toggle('active',auto);
+  document.getElementById('grid-mode-manual').classList.toggle('active',!auto);
+  document.getElementById('dg-grid-inputs').style.display=auto?'none':'flex';
+  if(!auto) onGridStepInput(); else drawGraph();
+}
+
+function onGridStepInput(){
+  var xv=parseFloat(document.getElementById('grid-step-x').value);
+  var yv=parseFloat(document.getElementById('grid-step-y').value);
+  if(isFinite(xv)&&xv>0) gridStepXManual=xv;
+  if(isFinite(yv)&&yv>0) gridStepYManual=yv;
+  drawGraph();
+}
 /* ════════ end math engine ════════ */
 
 /* ════════ ANALYSIS: slope (derivative) + axis intercepts ════════ */
@@ -2986,9 +3029,27 @@ function drawGraph(){
     f.roots=findRoots(f.fn,xmin,xmax);
   });
 
-  // grid lines
+  // grid lines — major step is either auto-fit or user-set; minor grid divides each major cell into 5
   function niceStep(range,n){ var r=range/n; var p=Math.pow(10,Math.floor(Math.log10(r))); var f=r/p; return f<1.5?p:f<3.5?2*p:f<7.5?5*p:10*p; }
-  var xstep=niceStep(xmax-xmin,8), ystep=niceStep(ymax-ymin,8);
+  function clampStep(step,range){ // safety: avoid runaway line counts if manual spacing is too fine
+    if(!(step>0)) return Math.abs(range)/10||1;
+    var maxLines=120;
+    return Math.abs(range)/step>maxLines ? Math.abs(range)/maxLines : step;
+  }
+  var xstep=gridAutoMode?niceStep(xmax-xmin,8):clampStep(gridStepXManual,xmax-xmin);
+  var ystep=gridAutoMode?niceStep(ymax-ymin,8):clampStep(gridStepYManual,ymax-ymin);
+
+  // minor grid (1 ช่องใหญ่ = 5 ช่องเล็ก)
+  var minorXstep=xstep/5, minorYstep=ystep/5;
+  ctx.strokeStyle='rgba(255,255,255,.03)'; ctx.lineWidth=1;
+  for(var mgx=Math.ceil(xmin/minorXstep)*minorXstep; mgx<=xmax; mgx+=minorXstep){
+    var smx=px(mgx); ctx.beginPath(); ctx.moveTo(smx,0); ctx.lineTo(smx,h); ctx.stroke();
+  }
+  for(var mgy=Math.ceil(ymin/minorYstep)*minorYstep; mgy<=ymax; mgy+=minorYstep){
+    var smy=py(mgy); ctx.beginPath(); ctx.moveTo(0,smy); ctx.lineTo(w,smy); ctx.stroke();
+  }
+
+  // major grid
   ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1;
   ctx.fillStyle='rgba(107,116,144,.65)'; ctx.font='10px monospace';
   for(var gx=Math.ceil(xmin/xstep)*xstep; gx<=xmax; gx+=xstep){
