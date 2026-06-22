@@ -434,6 +434,22 @@ body{
 }
 .pt-item-del:active{color:var(--red);}
 
+/* ── analysis panel: slope + axis intercepts ── */
+.graph-analysis{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
+.ga-card{
+  background:var(--s3);border:1px solid var(--b2);border-radius:10px;
+  padding:8px 9px;
+}
+.ga-head{
+  display:flex;align-items:center;gap:6px;margin-bottom:4px;
+  font-size:11.5px;font-weight:700;color:var(--txt);
+  font-family:var(--mono);word-break:break-all;
+}
+.ga-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.ga-row{font-size:10.5px;color:var(--muted);line-height:1.6;}
+.ga-row b{color:var(--txt);font-weight:600;font-family:var(--mono);}
+.ga-empty{font-size:10.5px;color:var(--muted2);text-align:center;padding:8px 2px;line-height:1.6;}
+
 /* ── per-axis zoom panel ── */
 .dg-axis-zoom{
   position:absolute;
@@ -1210,6 +1226,7 @@ body.rotated{
             <code>sin cos tan asin acos atan log ln sqrt abs exp pi e</code><br>
             <code>x^n  x!  mod(x,3)  max/min(a,b)  nthroot(x,3)</code>
           </div>
+          <div class="graph-analysis" id="fn-analysis"></div>
         </div>
 
         <!-- POINT PANEL -->
@@ -1237,6 +1254,7 @@ body.rotated{
           <div class="graph-hint" style="margin-top:4px">
             แตะบน Canvas เพื่อเพิ่มจุดได้เลย<br>หรือกรอก x, y แล้วกด +
           </div>
+          <div class="graph-analysis" id="pt-analysis"></div>
         </div>
       </div>
 
@@ -2431,6 +2449,7 @@ const FN_COLORS=['#4f8ef7','#34d399','#f59e0b','#f87171','#a78bfa','#f472b6'];
 let graphXMin=-10, graphXMax=10, graphYMin=-10, graphYMax=10;
 let graphInitialized=false, graphLastW=0, graphLastH=0;
 let graphDrawTimer=null;
+let fnTapX=null;
 
 /* ── graph mode: 'fn' | 'pt' ── */
 let graphMode='fn';
@@ -2782,6 +2801,119 @@ function toggleDegMode(){
 }
 /* ════════ end math engine ════════ */
 
+/* ════════ ANALYSIS: slope (derivative) + axis intercepts ════════ */
+function numDeriv(fn,x){
+  var h=1e-4*Math.max(1,Math.abs(x));
+  try{
+    var y1=fn(x-h,GM), y2=fn(x+h,GM);
+    if(!isFinite(y1)||!isFinite(y2)) return NaN;
+    return (y2-y1)/(2*h);
+  }catch(e){ return NaN; }
+}
+
+/* scan [xmin,xmax] for sign changes → bisection refine → roots of fn(x)=0 */
+function findRoots(fn,xmin,xmax){
+  var steps=400, roots=[];
+  var prevX=xmin, prevY;
+  try{ prevY=fn(prevX,GM); }catch(e){ prevY=NaN; }
+  for(var i=1;i<=steps;i++){
+    var x=xmin+(xmax-xmin)*i/steps;
+    var y; try{ y=fn(x,GM); }catch(e){ y=NaN; }
+    if(isFinite(prevY)&&isFinite(y)){
+      if(Math.abs(y)<1e-9){ roots.push(x); }
+      else if((prevY<0&&y>0)||(prevY>0&&y<0)){
+        var a=prevX,b=x,fa=prevY;
+        for(var k=0;k<50;k++){
+          var m=(a+b)/2, fm; try{ fm=fn(m,GM); }catch(e){ fm=NaN; }
+          if(!isFinite(fm)) break;
+          if((fa<0&&fm>0)||(fa>0&&fm<0)){ b=m; } else { a=m; fa=fm; }
+        }
+        // verify true convergence to ~0 (rejects asymptotes/discontinuities like tan(x) at π/2)
+        var mEnd=(a+b)/2, fEnd; try{ fEnd=fn(mEnd,GM); }catch(e){ fEnd=NaN; }
+        if(isFinite(fEnd)&&Math.abs(fEnd)<1e-3) roots.push(mEnd);
+      }
+    }
+    prevX=x; prevY=y;
+  }
+  roots.sort(function(a,b){return a-b;});
+  var out=[], minGap=Math.abs(xmax-xmin)/steps*3;
+  roots.forEach(function(r){
+    if(!out.length||Math.abs(r-out[out.length-1])>minGap) out.push(r);
+  });
+  return out;
+}
+
+function fmtNum(v){
+  if(v===undefined||v===null||!isFinite(v)) return '—';
+  var r=Math.round(v*1000)/1000;
+  if(Object.is(r,-0)) r=0;
+  return r.toString();
+}
+
+function updateFnAnalysis(fns){
+  var box=document.getElementById('fn-analysis');
+  if(!box) return;
+  if(!fns.length){ box.innerHTML='<div class="ga-empty">ใส่ฟังก์ชันเพื่อดูความชันและจุดตัดแกน</div>'; return; }
+  box.innerHTML=fns.map(function(f){
+    var rootsTxt=(f.roots&&f.roots.length)? f.roots.slice(0,6).map(fmtNum).join(', ') : 'ไม่พบในช่วงที่แสดง';
+    return '<div class="ga-card">'
+      +'<div class="ga-head"><span class="ga-dot" style="background:'+f.col+'"></span>f(x) = '+f.raw.replace(/</g,'&lt;')+'</div>'
+      +'<div class="ga-row">• ตัดแกน Y: <b>(0, '+fmtNum(f.y0)+')</b></div>'
+      +'<div class="ga-row">• ตัดแกน X: <b>x = '+rootsTxt+'</b></div>'
+      +'<div class="ga-row">• ความชันที่ x = 0, f \'(0): <b>'+fmtNum(f.m0)+'</b></div>'
+      +'</div>';
+  }).join('');
+}
+
+function updatePtAnalysis(){
+  var box=document.getElementById('pt-analysis');
+  if(!box) return;
+  if(!ptData||ptData.length<2){ box.innerHTML='<div class="ga-empty">เพิ่มอย่างน้อย 2 จุด เพื่อดูความชันและจุดตัดแกน</div>'; return; }
+  var html='';
+  if(ptData.length===2){
+    var p1=ptData[0], p2=ptData[1], dx=p2.x-p1.x;
+    if(dx===0){
+      html='<div class="ga-card"><div class="ga-head">เส้นแนวตั้ง</div>'
+        +'<div class="ga-row">• ความชัน: <b>หาไม่ได้ (เส้นแนวตั้ง)</b></div>'
+        +'<div class="ga-row">• สมการ: <b>x = '+fmtNum(p1.x)+'</b></div>'
+        +'<div class="ga-row">• ตัดแกน X: <b>('+fmtNum(p1.x)+', 0)</b></div>'
+        +'<div class="ga-row">• ตัดแกน Y: <b>'+(p1.x===0?'ซ้อนกับแกน Y ทั้งเส้น':'ไม่ตัด')+'</b></div></div>';
+    } else {
+      var m=(p2.y-p1.y)/dx, c=p1.y-m*p1.x;
+      html='<div class="ga-card"><div class="ga-head">เส้นตรงผ่าน 2 จุด</div>'
+        +'<div class="ga-row">• ความชัน: <b>m = '+fmtNum(m)+'</b></div>'
+        +'<div class="ga-row">• สมการเส้นตรง: <b>y = '+fmtNum(m)+'x '+(c>=0?'+ ':'− ')+fmtNum(Math.abs(c))+'</b></div>'
+        +'<div class="ga-row">• ตัดแกน Y: <b>(0, '+fmtNum(c)+')</b></div>'
+        +'<div class="ga-row">• ตัดแกน X: <b>'+(m!==0?('('+fmtNum(-c/m)+', 0)'):'ไม่ตัด (เส้นแนวนอน)')+'</b></div></div>';
+    }
+  } else {
+    var rows='';
+    for(var i=0;i<ptData.length-1;i++){
+      var a=ptData[i], b=ptData[i+1], dx2=b.x-a.x;
+      var m2=dx2!==0?(b.y-a.y)/dx2:NaN;
+      rows+='<div class="ga-row">• ('+fmtNum(a.x)+', '+fmtNum(a.y)+') → ('+fmtNum(b.x)+', '+fmtNum(b.y)+'): ชัน = <b>'+(isFinite(m2)?fmtNum(m2):'แนวตั้ง')+'</b></div>';
+    }
+    var xInts=[], yInts=[];
+    for(var j=0;j<ptData.length-1;j++){
+      var p=ptData[j], q=ptData[j+1];
+      if((p.y<0&&q.y>0)||(p.y>0&&q.y<0)||p.y===0){
+        var t=(0-p.y)/(q.y-p.y);
+        xInts.push(p.x+(q.x-p.x)*t);
+      }
+      if((p.x<0&&q.x>0)||(p.x>0&&q.x<0)||p.x===0){
+        var t2=(0-p.x)/(q.x-p.x);
+        yInts.push(p.y+(q.y-p.y)*t2);
+      }
+    }
+    html='<div class="ga-card"><div class="ga-head">ความชันแต่ละช่วง (ระหว่างจุดที่ติดกัน)</div>'+rows+'</div>'
+      +'<div class="ga-card"><div class="ga-head">จุดตัดแกน (ประมาณจากเส้นเชื่อมจุด)</div>'
+      +'<div class="ga-row">• ตัดแกน X: <b>'+(xInts.length?xInts.map(fmtNum).join(', '):'ไม่พบ')+'</b></div>'
+      +'<div class="ga-row">• ตัดแกน Y: <b>'+(yInts.length?yInts.map(fmtNum).join(', '):'ไม่พบ')+'</b></div></div>';
+  }
+  box.innerHTML=html;
+}
+/* ════════ end analysis ════════ */
+
 function graphFitY(canvas){
   var w=canvas.clientWidth||300, h=canvas.clientHeight||200;
   var xRange=graphXMax-graphXMin;
@@ -2847,6 +2979,13 @@ function drawGraph(){
     catch(e){ }
   });
 
+  // analysis: y-intercept, slope at x=0, x-intercepts (roots) per function
+  fns.forEach(function(f){
+    try{ f.y0=f.fn(0,GM); }catch(e){ f.y0=NaN; }
+    f.m0=numDeriv(f.fn,0);
+    f.roots=findRoots(f.fn,xmin,xmax);
+  });
+
   // grid lines
   function niceStep(range,n){ var r=range/n; var p=Math.pow(10,Math.floor(Math.log10(r))); var f=r/p; return f<1.5?p:f<3.5?2*p:f<7.5?5*p:10*p; }
   var xstep=niceStep(xmax-xmin,8), ystep=niceStep(ymax-ymin,8);
@@ -2895,7 +3034,42 @@ function drawGraph(){
       if(!started){ ctx.moveTo(sx,sy); started=true; } else ctx.lineTo(sx,sy);
     }
     ctx.stroke();
+
+    // mark y-intercept (open circle, fn color)
+    if(isFinite(f.y0)&&f.y0>=ymin&&f.y0<=ymax){
+      var syc=py(f.y0), sxc=px(0);
+      ctx.beginPath(); ctx.arc(sxc,syc,4,0,Math.PI*2);
+      ctx.fillStyle='#0a0d14'; ctx.fill();
+      ctx.strokeStyle=f.col; ctx.lineWidth=2; ctx.stroke();
+    }
+    // mark x-intercepts (open circles, fn color)
+    (f.roots||[]).forEach(function(r){
+      var sxr=px(r), syr=py(0);
+      ctx.beginPath(); ctx.arc(sxr,syr,4,0,Math.PI*2);
+      ctx.fillStyle='#0a0d14'; ctx.fill();
+      ctx.strokeStyle=f.col; ctx.lineWidth=2; ctx.stroke();
+    });
   });
+
+  // ── tap-to-inspect: tangent line + slope at tapped x (fn mode) ──
+  if(graphMode==='fn' && fnTapX!=null && fns.length){
+    var ft=fns[0];
+    var yT; try{ yT=ft.fn(fnTapX,GM); }catch(e){ yT=NaN; }
+    if(isFinite(yT)){
+      var mT=numDeriv(ft.fn,fnTapX);
+      var span=(xmax-xmin)*0.14;
+      var tx1=fnTapX-span, tx2=fnTapX+span;
+      var ty1=yT-mT*span, ty2=yT+mT*span;
+      ctx.save();
+      ctx.setLineDash([5,4]); ctx.strokeStyle=ft.col; ctx.lineWidth=1.6;
+      ctx.beginPath(); ctx.moveTo(px(tx1),py(ty1)); ctx.lineTo(px(tx2),py(ty2)); ctx.stroke();
+      ctx.restore();
+      var sxT=px(fnTapX), syT=py(yT);
+      ctx.beginPath(); ctx.arc(sxT,syT,5,0,Math.PI*2);
+      ctx.fillStyle=ft.col; ctx.fill();
+      ctx.strokeStyle='#0a0d14'; ctx.lineWidth=1.5; ctx.stroke();
+    }
+  }
 
   // ── draw points (point-mode) ──
   if(ptData&&ptData.length){
@@ -2941,6 +3115,19 @@ function drawGraph(){
 
   document.getElementById('graph-info').textContent=
     'x:['+xmin.toFixed(2)+', '+xmax.toFixed(2)+']  y:['+ymin.toFixed(2)+', '+ymax.toFixed(2)+']';
+
+  updateFnAnalysis(fns);
+  updatePtAnalysis();
+
+  // overwrite readout with tap-point slope info, if active
+  if(graphMode==='fn' && fnTapX!=null && fns.length){
+    var fi=fns[0], yI; try{ yI=fi.fn(fnTapX,GM); }catch(e){ yI=NaN; }
+    if(isFinite(yI)){
+      var mI=numDeriv(fi.fn,fnTapX);
+      document.getElementById('graph-info').textContent=
+        'x = '+fmtNum(fnTapX)+'   f(x) = '+fmtNum(yI)+'   ความชัน f \'(x) = '+fmtNum(mI);
+    }
+  }
 }
 
 /* ════ canvas interaction: pan, per-axis pinch, point-tap ════ */
@@ -2974,10 +3161,15 @@ function drawGraph(){
     last={x:cx,y:cy}; drawGraph();
   }
   function onEnd(cx,cy){
-    if(!didMove && graphMode==='pt' && startClient){
-      /* tap → add point */
+    if(!didMove && startClient){
       var cp=clientToCanvas(cx,cy);
-      addPointFromCanvas(cp.x,cp.y);
+      if(graphMode==='pt'){
+        addPointFromCanvas(cp.x,cp.y);
+      } else if(graphMode==='fn'){
+        var c=getC(); var w=c.clientWidth||300;
+        fnTapX=graphXMin+(cp.x/w)*(graphXMax-graphXMin);
+        drawGraph();
+      }
     }
     dragging=false; didMove=false; last=null; startClient=null;
   }
